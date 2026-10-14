@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>舆情 Agent · 全链路讲解稿（客户演示用）</title>
+<style>
+  :root{--bg:#f4f6fa;--card:#fff;--line:#e6e9f0;--ink:#1b2130;--sub:#68718a;
+    --blue:#3b6ef5;--green:#18a678;--orange:#e8930c;--red:#e5484d;--purple:#7c5cf0;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;background:var(--bg);color:var(--ink);padding:30px 18px;line-height:1.7}
+  .wrap{max-width:1050px;margin:0 auto}
+  h1{font-size:24px}
+  .meta{color:var(--sub);font-size:12.5px;margin:6px 0 24px}
+  h2{font-size:17px;margin:34px 0 12px;padding-left:10px;border-left:4px solid var(--blue)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:12px}
+  .pitch{background:linear-gradient(135deg,#1b2130,#2c3a5e);color:#fff;border-radius:12px;padding:20px 24px;font-size:15.5px;line-height:1.8}
+  .pitch b{color:#ffd479}
+
+  /* 流程泳道 */
+  .lane{display:flex;align-items:stretch;gap:0;margin-bottom:14px}
+  .lane .lt{width:110px;flex-shrink:0;display:flex;align-items:center;font-size:12.5px;font-weight:600;color:var(--sub)}
+  .steps{display:flex;flex:1;gap:0;align-items:center;overflow-x:auto}
+  .step{background:#fbfcfe;border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-width:128px;text-align:center}
+  .step b{font-size:13px;display:block}
+  .step span{font-size:11px;color:var(--sub);display:block;margin-top:3px;line-height:1.5}
+  .ar{color:#b9c2d8;padding:0 6px;font-size:15px;flex-shrink:0}
+  .step.human{border-color:var(--blue);background:#f4f8ff}
+  .step.auto{border-color:var(--green);background:#f2fbf7}
+  .step.gate{border-color:var(--orange);background:#fff9ef}
+  .step.out{border-color:var(--purple);background:#f8f5ff}
+  .legend{font-size:11.5px;color:var(--sub);margin:4px 0 0}
+  .legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin:0 4px 0 12px;vertical-align:-1px}
+
+  /* 连接表 */
+  table{width:100%;border-collapse:collapse;font-size:13px;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  th,td{padding:8px 10px;border-bottom:1px solid #f1f3f8;text-align:left;vertical-align:top}
+  th{background:#f0f3f8;font-size:12px;color:var(--sub);white-space:nowrap}
+  tr:last-child td{border-bottom:none}
+  .pg{font-weight:600;white-space:nowrap}
+  .tagv{font-size:11px;border-radius:4px;padding:1px 6px;white-space:nowrap}
+  .t-in{background:#eef2fe;color:var(--blue)} .t-sys{background:#e2f6ef;color:var(--green)} .t-out{background:#f1f4fa;color:var(--sub)}
+
+  /* 演示脚本 */
+  .demo{counter-reset:d}
+  .dstep{display:flex;gap:14px;padding:12px 0;border-bottom:1px solid #f1f3f8}
+  .dstep:last-child{border-bottom:none}
+  .dnum{counter-increment:d;width:30px;height:30px;border-radius:50%;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0}
+  .dnum::before{content:counter(d)}
+  .dstep .db b{font-size:14px}
+  .dstep .db p{font-size:13px;color:#3a4258;margin-top:3px}
+  .dstep .say{font-size:12.5px;color:var(--sub);margin-top:5px;background:#f7f8fb;border-left:3px solid var(--blue);padding:6px 10px;border-radius:0 8px 8px 0}
+  .dstep .say b{color:var(--ink)}
+
+  .sell{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
+  .sell .card{margin:0}
+  .sell h4{font-size:13.5px;margin-bottom:5px}
+  .sell p{font-size:12.5px;color:var(--sub)}
+  .qa{font-size:13px;margin-top:6px}
+  .qa b{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>舆情研判 Agent · 全链路讲解稿</h1>
+<div class="meta">配合同目录《舆情Agent控制台-仪表盘设计稿.html》演示 · 2026-10 · 客户沟通内部材料</div>
+
+<h2>〇、一句话电梯稿</h2>
+<div class="pitch">
+  这是一个<b> 7×24 小时替客户盯着全网热点、自动完成研判、最后交出带证据链报告 </b>的舆情 Agent 系统。
+  热点它自己发现、子问题它自己拆解和调查、每个结论强制挂证据、质疑环节机器先互搏一轮，
+  人只做两件事：<b>在关键闸门上审批，和随时插话问进展</b>。市面上的监测系统止步于"告诉你有热点"，
+  我们的系统回答"<b>该不该管、怎么管、证据在哪</b>"。
+</div>
+
+<h2>一、全链路怎么跑（两条线 + 一道闸）</h2>
+
+<div class="card">
+  <div class="lane">
+    <div class="lt">A 线<br>无人值守（自动）</div>
+    <div class="steps">
+      <div class="step auto"><b>信源</b><span>18 个平台适配器<br>热榜+检索+兜底</span></div><div class="ar">→</div>
+      <div class="step auto"><b>值守 sentinel</b><span>每小时巡检<br>关键词×热度跃升检测</span></div><div class="ar">→</div>
+      <div class="step auto"><b>自动建议题 / 预警</b><span>命中即开议题<br>紧急推送飞书</span></div><div class="ar">→</div>
+      <div class="step"><b>议题（值守中）</b><span>等待升级为研判<br>或长期监测</span></div>
+    </div>
+  </div>
+  <div class="lane">
+    <div class="lt">B 线<br>研判（人机协作）</div>
+    <div class="steps">
+      <div class="step"><b>议题（研判中）</b><span>自动升级或用户新建</span></div><div class="ar">→</div>
+      <div class="step"><b>议题拆解器</b><span>拆成子问题：<br>热度/传播/信源/情绪/影响</span></div><div class="ar">→</div>
+      <div class="step"><b>规划者派工</b><span>生成研究意图<br>Worker 领任务执行</span></div><div class="ar">→</div>
+      <div class="step"><b>调查取证</b><span>调工具/MCP 采集检索<br>证据强制挂链</span></div><div class="ar">→</div>
+      <div class="step"><b>核实员</b><span>回溯原文+时间戳<br>核不过标存疑</span></div><div class="ar">→</div>
+      <div class="step"><b>质疑者</b><span>找反例/查单源<br>打回补证</span></div><div class="ar">→</div>
+      <div class="step"><b>结题</b><span>规划者判定<br>证据充分+无异议</span></div>
+    </div>
+  </div>
+  <div class="lane">
+    <div class="lt">交付</div>
+    <div class="steps">
+      <div class="step out"><b>撰稿员成稿</b><span>只读已结题链路<br>禁止自行补充事实</span></div><div class="ar">→</div>
+      <div class="step gate"><b>人工审核</b><span>批注数据口径</span></div><div class="ar">→</div>
+      <div class="step out"><b>报告中心 + 推送</b><span>事件报告/日报<br>飞书送达</span></div>
+    </div>
+  </div>
+  <p class="legend">绿=系统自动 蓝=用户介入 橙=人工闸门 紫=交付物 ｜ A 线发现，B 线深究，全流程穿过采集守则与审批闸门 ｜ B 线的分工与门禁在产品上呈现为「团队抽屉」（组队草案→确认→成员看板，底层即 dsh agent-teams 的草案/质量门禁机制）</p>
+</div>
+
+<h2>二、页面与入口怎么连（业务页 + 团队抽屉 + 定制中心）</h2>
+<p style="font-size:13px;color:#3a4258;margin-bottom:10px">布局三级：<b>左侧业务入口</b>（仪表盘/对话/议题/信号/研判链路/信源/采集流水/报告中心/品牌监测）＋ <b>右上角上下文按钮</b>（🧩 团队 → 右侧抽屉）＋ <b>定制中心</b>（系统配置收纳，chips 过滤）。页面保持扫一眼的密度，深挖内容一律"点了才从右边伸出面板"。</p>
+<table>
+  <tr><th>页面/入口</th><th>角色</th><th>从哪进来</th><th>点什么 / 连到哪</th></tr>
+  <tr><td class="pg">仪表盘</td><td><span class="tagv t-in">总入口</span></td><td>登录默认页</td><td>五张 KPI 卡（在监议题/风险信号/信源节点/今日信息量/Token 用量）+ 全局热度时间线 + 活动流——客户看到的第一个"活着"的证据</td></tr>
+  <tr><td class="pg">议题</td><td><span class="tagv t-in">任务中心</span></td><td>仪表盘 / 新建议题</td><td>议题三态（值守中→研判中→已结题）= A 线升 B 线到交付的生命周期；议题详情页签：会话/总览/研判链路/信号/证据库/审批/报告</td></tr>
+  <tr><td class="pg">对话</td><td><span class="tagv t-in">人的唯一入口</span></td><td>任何阶段</td><td>只对主 Agent 说话（子 Agent 由系统调度、发言在会话流透出、不可直连）；可注入 hint；<b>右上角「🧩 团队」→ 右侧抽屉展现组队草案/成员看板</b>；团队面板只属于对话页</td></tr>
+  <tr><td class="pg">团队抽屉</td><td><span class="tagv t-in">组织视图</span></td><td>对话页右上角</td><td>组队草案（成员阵容/任务依赖/门禁顺序，确认才启动）→ 成员看板（谁在跑谁在等）→ 点成员续聊进会话；「🕸 Agent 网络」看每个 Agent 的 token/成本/上下文构成树——定价与调优的依据</td></tr>
+  <tr><td class="pg">研判链路</td><td><span class="tagv t-sys">认知视图</span></td><td>议题详情页签</td><td>起点→目标→意图→事实/信号/存疑；与团队抽屉是<b>同一张图的两个投影</b>（组织视图答"活怎么分"，链路答"凭什么信"）；客户最信这页</td></tr>
+  <tr><td class="pg">信号</td><td><span class="tagv t-sys">风险产出</span></td><td>仪表盘 / 链路</td><td>高/中/关注三级，每条挂证据引用；高危触发推送</td></tr>
+  <tr><td class="pg">品牌监测</td><td><span class="tagv t-in">决策功能</span></td><td>侧栏入口</td><td>本品+竞品阵营卡、7 天声量/负面率对比（纯统计）、每日竞品简报（新品/风险/动态/机会四类）→ 感兴趣的一键生成周报，右侧抽屉预览</td></tr>
+  <tr><td class="pg">信源 / 采集流水</td><td><span class="tagv t-sys">数据地基+审计底账</span></td><td>侧栏</td><td>适配器健康度/降级兜底；每次采集动作可审计，链路证据可回溯到具体抓取</td></tr>
+  <tr><td class="pg">报告中心</td><td><span class="tagv t-out">交付物</span></td><td>结题触发 / 定时日报</td><td><b>报告卡片点击 → 右侧抽屉直接预览</b>（数据洞察层代码出图、引用挂链）；人工审核口径后发布推送</td></tr>
+  <tr><td class="pg">定制中心</td><td><span class="tagv t-out">系统配置收纳</span></td><td>侧栏单一入口</td><td>chips 过滤：LLM（供应商管理：Base URL/API Key/模型列表可增删/路由策略）· Agent（8 角色权限）· MCP · Skill · 工具（权限下拉可改）· 守则（策略+开关）· 审批（批准/拒绝真实生效）· 日志 · 配置（表单化：调度/预警阈值/推送渠道/代理/存储/合规，分组保存）——<b>没有只读假页面</b></td></tr>
+</table>
+
+<h2>三、给客户的 5 步演示脚本（15 分钟版）</h2>
+<div class="card demo">
+  <div class="dstep"><div class="dnum"></div><div class="db"><b>仪表盘——先证明它活着</b>
+    <p>指五张 KPI 卡和活动流滚动：值守 Agent 刚在 12 分钟前自动并入了一条命中。</p>
+    <div class="say">"这是系统<b>此刻</b>的全局状态——它不是等您来查，它一直在自己干活。"</div></div></div>
+  <div class="dstep"><div class="dnum"></div><div class="db"><b>议题——给事件立个案</b>
+    <p>打开闲鱼议题：生命周期三态、子题进度 4/5、热度时间线上 9/21 爆发日一眼可见。</p>
+    <div class="say">"热搜爆了它自己发现、自己立案、自己拆解——您零操作。"</div></div></div>
+  <div class="dstep"><div class="dnum"></div><div class="db"><b>研判链路——摊开 AI 怎么想的</b>
+    <p>从起点讲到信号节点：谁首发、几点引爆、官方回应、哪个结论被质疑者打回过。</p>
+    <div class="say">"别的系统给您一个结论，我们给您<b>结论的推导过程</b>——这里有个节点标着'存疑'，是我们自己的质疑 Agent 打回去的。"</div></div></div>
+  <div class="dstep"><div class="dnum"></div><div class="db"><b>信号+对话——插一句话看它转向</b>
+    <p>点开一条高危信号看证据引用；回对话页现场输入"重点查首发信源"，看规划者现场派工。</p>
+    <div class="say">"您随时可以插话，它按您的优先级重排调查——这是人在环路，不是黑盒跑批。"</div></div></div>
+  <div class="dstep"><div class="dnum"></div><div class="db"><b>审批+报告——闸门和交付</b>
+    <p>审批页那条"登录态深挖待审批"：系统想要、守则拦住、等人点头。报告中心点开事件报告卡片，右侧面板直接预览：数据洞察层代码出图、专题层引用挂链。</p>
+    <div class="say">"它能干的事都有边界，出的每句话都有出处——<b>这您才敢往上递</b>。"</div></div></div>
+  <div class="dstep"><div class="dnum"></div><div class="db"><b>（加分项）品牌监测+团队——从监测到决策的完整闭环</b>
+    <p>品牌监测页：本品+竞品阵营、负面率对比给出"转化窗口"结论；每日竞品简报一键生成周报。回对话页右上角「团队」：组队草案确认后看板亮起，Agent 网络里每个成员的 token 成本一目了然。</p>
+    <div class="say">"监测只是起点，<b>带证据的决策建议</b>才是交付——而且每个 Agent 花了多少成本，账单透明。"</div></div></div>
+</div>
+
+<h2>四、四个卖点（对着不同客户换顺序）</h2>
+<div class="sell">
+  <div class="card"><h4>⛓ 证据链强制</h4><p>结论必须挂原文链接+抓取时间，核不过就标存疑。对应客户痛点：AI 报告不敢往上报。</p></div>
+  <div class="card"><h4>⚔ 机器自查先于人查</h4><p>质疑 Agent 专挑自家结论的刺：单源打回、口径复核。舆情翻车最怕"一面之词"。</p></div>
+  <div class="card"><h4>🛡 合规闸门内建</h4><p>采集守则+审批+PII 脱敏+全审计日志。对应客户痛点：采购舆情系统最怕数据来源出事。</p></div>
+  <div class="card"><h4>📜 过程全可视</h4><p>研判链路把 AI 推理摊开给人看。对应客户痛点：黑盒系统出了错都不知道错哪。</p></div>
+</div>
+
+<h2>五、客户常问三题（备答）</h2>
+<div class="card">
+  <p class="qa"><b>Q1 数据覆盖多少平台？</b> 答：热榜层 8+ 平台分钟级，检索层联网全量，深挖层（评论区等登录态数据）走审批制按需采集——我们按研判需要取数，不吹"全网全量"，吹的是取的都是有用的。</p>
+  <p class="qa"><b>Q2 跟 XX 监测系统比差异？</b> 答：监测系统到"预警"为止，我们从预警往后走完"研判-质疑-报告"；且每条结论可回溯，不是模型张口就来。</p>
+  <p class="qa"><b>Q3 AI 说错了谁负责？</b> 答：三层兜底——核实员核证据、质疑者挑毛病、关键动作和成稿必须人工审批。系统设计目标就是把"AI 错"拦截在"人签字"之前。</p>
+</div>
+
+<div class="meta" style="margin-top:26px">内部材料 · demo 数据为闲鱼事件脱敏演示 · 已同步 2026-10 原型（定制中心/团队抽屉/品牌监测/报告抽屉预览）· 实装底座候选 DeepSeek Harness（见 harness-research 集成分析）</div>
+</div>
+</body>
+</html>

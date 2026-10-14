@@ -1,0 +1,1564 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>舆情 Agent 控制台 · 交互原型</title>
+<style>
+  :root{
+    --bg:#f4f6fa; --card:#fff; --line:#e6e9f0; --ink:#1b2130; --sub:#68718a;
+    --blue:#3b6ef5; --green:#18a678; --orange:#e8930c; --red:#e5484d; --purple:#7c5cf0;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
+  .app{display:flex;min-height:100vh}
+
+  .side{width:196px;background:#fff;border-right:1px solid var(--line);padding:18px 10px;flex-shrink:0;position:sticky;top:0;height:100vh;overflow:auto;display:flex;flex-direction:column}
+  .usercard{margin-top:auto;border-top:1px solid var(--line);padding:12px 8px 2px;display:flex;gap:9px;align-items:center;cursor:pointer}
+  .usercard:hover .un{color:var(--blue)}
+  .uava{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#3b6ef5,#7c5cf0);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0}
+  .un{font-size:13px;font-weight:600}
+  .up{font-size:10.5px;color:var(--sub)}
+  .upb{font-size:10px;background:#fdf3e2;color:var(--orange);border-radius:4px;padding:0 5px;margin-left:4px}
+  .logo{font-weight:700;font-size:17px;padding:0 10px 16px;letter-spacing:1px}
+  .logo small{display:block;font-size:10px;color:var(--sub);font-weight:400;letter-spacing:2px}
+  .grp{font-size:11px;color:var(--sub);padding:14px 12px 6px}
+  .nav a{display:flex;align-items:center;gap:9px;padding:8px 12px;border-radius:8px;color:var(--ink);text-decoration:none;margin-bottom:2px;cursor:pointer}
+  .nav a:hover{background:#f1f4fa}
+  .nav a.on{background:#eef2fe;color:var(--blue);font-weight:600}
+  .nav .ic{width:16px;height:16px;flex-shrink:0}
+  .nav .ic svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;display:block}
+  .nav a .chev{margin-left:auto;color:#c3cad9;font-size:12px}
+  .badge{margin-left:auto;background:var(--orange);color:#fff;font-size:10px;border-radius:9px;padding:0 6px;line-height:16px}
+
+  .main{flex:1;padding:22px 26px;min-width:0}
+  .page{display:none}
+  .page.on{display:block}
+  .topbar{display:flex;align-items:baseline;gap:12px;margin-bottom:4px}
+  .topbar h1{font-size:20px}
+  .topbar .sub{color:var(--sub);font-size:12px}
+  .newtask{margin-left:auto;background:var(--ink);color:#fff;border-radius:8px;padding:8px 14px;font-size:13px;border:none;cursor:pointer}
+
+  .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:16px 0}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .kpi .t{font-size:12px;color:var(--sub);margin-bottom:8px}
+  .kpi .v{font-size:26px;font-weight:700;line-height:1}
+  .kpi .v small{font-size:13px;color:var(--sub);font-weight:400}
+  .kpi .d{margin-top:8px;font-size:11.5px}
+  .dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:4px;vertical-align:1px}
+
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:14px}
+  .panel h3{font-size:14px;margin-bottom:2px}
+  .panel .desc{font-size:12px;color:var(--sub);margin-bottom:14px}
+  .phead{display:flex;align-items:center}
+  .phead h3{margin-right:8px}
+  .phead .right{margin-left:auto;font-size:12px;color:var(--sub)}
+  .chips{display:flex;gap:6px}
+  .chip{font-size:11px;padding:3px 10px;border-radius:14px;background:#f1f4fa;color:var(--sub)}
+  .chip.on{background:var(--ink);color:#fff}
+
+  .tokwrap{display:flex;gap:28px}
+  .tokleft{width:280px;flex-shrink:0}
+  .tokleft .big{font-size:30px;font-weight:700;margin:4px 0 12px}
+  .bar-row{margin-bottom:12px}
+  .bar-row .lab{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px}
+  .bar-row .lab b{font-weight:600}
+  .bar{height:6px;border-radius:4px;background:#edf0f6;overflow:hidden}
+  .bar i{display:block;height:100%;border-radius:4px}
+  .hitrate{margin-top:14px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;justify-content:space-between;font-size:12.5px}
+  .hitrate b{color:var(--green)}
+  .chart{flex:1;display:flex;align-items:flex-end;gap:56px;height:210px;padding:0 30px;border-left:1px solid var(--line)}
+  .col{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center}
+  .stack{width:52px;display:flex;flex-direction:column;justify-content:flex-end}
+  .stack i{display:block;width:100%}
+  .s-in{background:var(--blue)} .s-out{background:var(--purple)} .s-cache{background:var(--green)}
+  .col .x{margin-top:8px;font-size:12px;color:var(--sub)}
+  .legend{display:flex;gap:16px;font-size:11.5px;color:var(--sub);margin-bottom:10px;justify-content:flex-end}
+  .legend .dot{margin-right:5px}
+
+  .heat{display:flex;align-items:flex-end;gap:6px;height:64px;margin:6px 0 4px}
+  .heat i{flex:1;background:linear-gradient(180deg,#ffd9a8,#f5a623);border-radius:3px 3px 0 0;opacity:.9}
+  .heat i.peak{background:linear-gradient(180deg,#ffb3b3,var(--red))}
+  .heat-x{display:flex;justify-content:space-between;font-size:11px;color:var(--sub)}
+
+  /* AI 模式（仿糖果梦） */
+  .aimeta{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+  .aimeta span{font-size:11.5px;border:1px solid var(--line);border-radius:6px;padding:3px 10px;color:var(--sub);background:#fbfcfe}
+  .rank{display:inline-flex;width:22px;height:22px;border-radius:50%;color:#fff;font-size:12px;font-weight:700;align-items:center;justify-content:center;flex-shrink:0}
+  .r1{background:#e5484d}.r2{background:#f5870c}.r3{background:#d4a017}.rN{background:#5b64d8}
+  .acc{border:1px solid var(--line);border-radius:10px;margin-bottom:10px;overflow:hidden}
+  .acc-h{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;background:#fbfcfe}
+  .acc-h b{font-size:13.5px}
+  .acc-h .chev{margin-left:auto;color:var(--sub);transition:.2s}
+  .acc.open .acc-h .chev{transform:rotate(180deg)}
+  .acc-b{display:none;padding:14px;grid-template-columns:repeat(3,1fr);gap:12px;border-top:1px solid var(--line)}
+  .acc.open .acc-b{display:grid}
+  .acc-col{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:#fbfcfe}
+  .acc-col h5{font-size:12.5px;margin-bottom:6px;color:var(--ink)}
+  .acc-col p{font-size:12.5px;color:var(--sub);line-height:1.7}
+
+  /* 日报卡片（带缩略图，仿糖果梦） */
+  .daily-card{display:flex;gap:14px;cursor:pointer}
+  .daily-card .thumb{width:148px;height:92px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:30px;color:#fff}
+  .daily-card h4{font-size:14.5px}
+  .daily-card .d2{margin:4px 0 6px}
+  .archbar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+
+  /* 热榜卡（仿糖果梦完整榜卡） */
+  .hcard{background:var(--card);border:1px solid var(--line);border-radius:11px;overflow:hidden;display:flex;flex-direction:column}
+  .hhead{display:flex;align-items:center;gap:8px;padding:11px 12px 8px}
+  .hico{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;flex-shrink:0}
+  .hname{font-weight:700;font-size:13.5px}
+  .hicons{margin-left:auto;display:flex;gap:7px;color:var(--sub);font-size:12px;align-items:center}
+  .hicons .rx{cursor:pointer}
+  .hicons .rx:hover{color:var(--blue)}
+  .hrefresh{font-size:11px;color:var(--sub);background:#f1f4fa;border-radius:8px;padding:1px 7px}
+  .hlist{padding:2px 12px 10px;max-height:252px;overflow-y:auto;border-top:1px solid #f1f3f8}
+  .hitem{display:flex;gap:7px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed #f1f3f8}
+  .hitem:last-child{border-bottom:none}
+  .hitem .ht{flex:1;min-width:0;font-size:12.8px;line-height:1.5}
+  .hitem .ht a{color:var(--ink);text-decoration:none}
+  .hitem .ht a:hover{color:var(--blue)}
+  .hitem .heat{color:#e5484d;font-size:11.5px;white-space:nowrap;margin-top:2px}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .flowtags{display:flex;gap:6px;margin-bottom:12px}
+  .ftag{font-size:11px;background:#f1f4fa;border-radius:5px;padding:2px 8px;color:var(--sub)}
+  .msg{display:flex;gap:8px;margin-bottom:10px;align-items:flex-start}
+  .who{font-size:10.5px;color:var(--blue);background:#eef2fe;border-radius:4px;padding:1px 6px;flex-shrink:0;margin-top:2px}
+  .who.u{color:var(--sub);background:#f1f4fa}
+  .bubble{font-size:13px;line-height:1.55;color:#2a3145}
+  .when{margin-left:auto;font-size:11px;color:var(--sub);flex-shrink:0}
+
+  .sig{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid #f1f3f8;align-items:flex-start}
+  .sig:last-child{border-bottom:none}
+  .lv{font-size:11px;border-radius:5px;padding:2px 8px;flex-shrink:0;margin-top:1px}
+  .lv.high{background:#fdecec;color:var(--red);font-weight:600}
+  .lv.mid{background:#fdf3e2;color:var(--orange);font-weight:600}
+  .lv.low{background:#eef2fe;color:var(--blue)}
+  .sig .body{min-width:0}
+  .sig .bt{font-weight:600;font-size:13.5px}
+  .sig .bs{font-size:12px;color:var(--sub);margin-top:3px;line-height:1.5}
+  .sig .bs b{color:#2a3145;font-weight:500}
+
+  /* 表格 */
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{padding:9px 10px;border-bottom:1px solid #f1f3f8;text-align:left;vertical-align:top}
+  th{font-size:12px;color:var(--sub);font-weight:500;white-space:nowrap}
+  tr:last-child td{border-bottom:none}
+  .st{font-size:11.5px;border-radius:5px;padding:2px 8px;white-space:nowrap}
+  .st.run{background:#e5f0ff;color:var(--blue)}
+  .st.pause{background:#fdf3e2;color:var(--orange)}
+  .st.done{background:#e2f6ef;color:var(--green)}
+  .st.err{background:#fdecec;color:var(--red)}
+  .mono{font-family:Consolas,monospace;font-size:12px;color:var(--sub)}
+  .link{color:var(--blue);text-decoration:none;cursor:pointer}
+
+  /* 可编辑配置 */
+  .tsel{border:1px solid var(--line);border-radius:7px;padding:4px 8px;font-size:12px;background:#fff;color:var(--ink);cursor:pointer;outline:none}
+  .tsel:hover{border-color:var(--blue)}
+  input.tog{appearance:none;-webkit-appearance:none;width:34px;height:19px;border-radius:10px;background:#cfd6e4;position:relative;cursor:pointer;transition:.2s;vertical-align:middle}
+  input.tog:checked{background:var(--green)}
+  input.tog::after{content:'';position:absolute;left:2px;top:2px;width:15px;height:15px;border-radius:50%;background:#fff;transition:.2s}
+  input.tog:checked::after{left:17px}
+  #toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;font-size:13px;border-radius:9px;padding:9px 18px;opacity:0;transition:.25s;pointer-events:none;z-index:99}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* 定制中心 */
+  .custombar{display:flex;gap:8px;align-items:center;margin:14px 0 18px;flex-wrap:wrap}
+  .csearch{flex:1;min-width:220px;border:1px solid var(--line);border-radius:18px;padding:8px 16px;font-size:13px;outline:none;background:#fff}
+  .chipc{font-size:12.5px;padding:6px 14px;border-radius:16px;border:1px solid var(--line);background:#fff;cursor:pointer;color:var(--ink)}
+  .chipc.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  #custom-body .topbar{margin:22px 0 6px;padding-top:14px;border-top:1px dashed var(--line)}
+  #custom-body>div:first-child .topbar{border-top:none;padding-top:0;margin-top:0}
+  /* 抽屉（右侧弹出面板，仿 VS Code 侧栏） */
+  .dmask{position:fixed;inset:0;background:rgba(27,33,48,.25);opacity:0;pointer-events:none;transition:.25s;z-index:49}
+  .dmask.open{opacity:1;pointer-events:auto}
+  .drawer{position:fixed;top:0;right:-490px;width:480px;max-width:92vw;height:100vh;background:#fff;border-left:1px solid var(--line);box-shadow:-10px 0 28px rgba(27,33,48,.10);transition:right .25s;z-index:50;display:flex;flex-direction:column}
+  .drawer.open{right:0}
+  .dhead{padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+  .dhead .dt{font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px}
+  .dhead .dx{margin-left:auto;cursor:pointer;color:var(--sub);font-size:18px;line-height:1}
+  .dtabs{display:flex;gap:6px;margin-top:10px}
+  .dbody{flex:1;overflow:auto;padding:14px 16px}
+  .dbody .msg{margin-bottom:12px}
+  .dcost{border-top:1px solid var(--line);padding:10px 16px;font-size:12px;color:var(--sub);background:#fbfcfe}
+  .dcost b{color:var(--ink)}
+  .btn{font-size:12px;border:1px solid var(--line);background:#fff;border-radius:7px;padding:5px 12px;cursor:pointer}
+  .btn.dark{background:var(--ink);color:#fff;border:none}
+  .ops{display:flex;gap:6px}
+
+  /* 对话页 */
+  .chatwrap{display:grid;grid-template-columns:250px 1fr;gap:14px}
+  #p-chat .chatwrap{height:calc(100vh - 110px)}
+  #p-chat .chatwrap .panel{height:100%;display:flex;flex-direction:column;overflow:hidden}
+  #p-chat .convlist{flex:1;overflow:auto;min-height:0}
+  #p-chat .chat-view{flex:1;display:flex;flex-direction:column;min-height:0}
+  #p-chat .chatbox{flex:1;overflow:auto;min-height:0}
+  #p-chat .empty{flex:1}
+  .newchat{width:100%;background:var(--ink);color:#fff;border:none;border-radius:9px;padding:10px 0;font-size:13px;cursor:pointer;margin-bottom:14px}
+  .conv{padding:10px 12px;border-radius:9px;cursor:pointer;margin-bottom:4px}
+  .conv:hover{background:#f1f4fa}
+  .conv.on{background:#eef2fe}
+  .conv .ct{font-size:13.5px;font-weight:600}
+  .conv .cm{font-size:11.5px;color:var(--sub);margin-top:3px}
+  .empty{min-height:420px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:var(--sub)}
+  .empty .eicon{width:64px;height:64px;border-radius:50%;background:#f1f4fa;display:flex;align-items:center;justify-content:center;font-size:26px}
+  .chatbar{border-top:1px solid var(--line);padding-top:12px;margin-top:6px}
+  .chatrow{display:flex;gap:10px}
+  .agentsel{border:1px solid var(--line);background:#fff;border-radius:9px;padding:10px 12px;font-size:13px;color:var(--ink);min-width:150px;cursor:pointer}
+  .chatrow input{flex:1;border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:13px;outline:none}
+  .send{border:none;background:#f1f4fa;border-radius:9px;width:44px;cursor:pointer;font-size:15px}
+  .modelline{font-size:11.5px;color:var(--sub);margin-top:9px}
+  .modelline b{color:var(--ink);font-weight:500}
+  .sess{padding:9px 10px;border-radius:8px;font-size:13px;margin-bottom:4px;cursor:pointer;display:flex;gap:8px;align-items:center}
+  .sess:hover{background:#f1f4fa}
+  .sess.on{background:#eef2fe;color:var(--blue);font-weight:600}
+  .sess .st{margin-left:auto}
+  .chatbox{height:420px;overflow:auto;padding-right:6px}
+  .chat-in{display:flex;gap:10px;margin-top:12px}
+  .chat-in input{flex:1;border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:13px;outline:none}
+  .chat-in .btn{padding:0 20px}
+
+  /* 链路图 */
+  .graph{display:grid;grid-template-columns:150px 1fr 1fr 1fr;gap:18px;align-items:start;overflow-x:auto;padding:10px 0}
+  .gcol{display:flex;flex-direction:column;gap:16px}
+  .gnode{background:#fbfcfe;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:12px;position:relative}
+  .gnode b{display:flex;align-items:center;gap:6px;font-size:12.5px}
+  .gnode .tag{font-size:10px;border-radius:4px;padding:0 5px;margin-left:auto}
+  .gnode .st2{font-size:10.5px;margin-top:5px}
+  .gnode .txt{color:var(--sub);margin-top:3px;line-height:1.5}
+  .t-start{background:var(--ink);color:#fff} .t-goal{background:var(--green);color:#fff}
+  .t-intent{background:var(--blue);color:#fff} .t-fact{background:var(--orange);color:#fff} .t-sig{background:var(--red);color:#fff}
+  .arrow{color:#b9c2d8;font-size:16px;text-align:center;margin:-8px 0}
+
+  /* 卡片组 */
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+  .card2{background:#fbfcfe;border:1px solid var(--line);border-radius:11px;padding:13px 15px}
+  .card2 h4{font-size:13.5px;display:flex;align-items:center;gap:7px}
+  .card2 .d2{font-size:12px;color:var(--sub);margin:6px 0 9px;line-height:1.55}
+  .pill{font-size:10.5px;background:#eef2fe;color:var(--blue);border-radius:4px;padding:1px 7px;margin-right:5px}
+  .pill.g{background:#e2f6ef;color:var(--green)} .pill.gr{background:#f1f4fa;color:var(--sub)} .pill.o{background:#fdf3e2;color:var(--orange)}
+
+  /* 日志 */
+  .logline{display:flex;gap:10px;font-family:Consolas,monospace;font-size:12.5px;padding:4px 0}
+  .logline .tm{color:var(--sub)}
+  .logline .tg{background:#f1f4fa;border-radius:4px;padding:0 6px;font-size:11px;color:var(--sub)}
+  .logline.warn{color:var(--orange)} .logline.err{color:var(--red)}
+
+  /* kv 配置 */
+  .kv{display:grid;grid-template-columns:220px 1fr;gap:0;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .kv>div{padding:10px 14px;border-bottom:1px solid #f1f3f8;font-size:13px}
+  .kv>div:nth-child(odd){background:#fbfcfe;color:var(--sub)}
+  .kv>div:last-child,.kv>div:nth-last-child(2){border-bottom:none}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="side">
+    <div class="logo">YUQING<small>舆情研判 AGENT</small></div>
+    <div class="grp">功能</div>
+    <nav class="nav" id="nav">
+      <a data-p="dash" class="on"><span class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg></span>仪表盘</a>
+      <a data-p="hot"><span class="ic"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span>热点追踪<span class="chev">›</span></a>
+      <a data-p="chat"><span class="ic"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>对话</a>
+      <a data-p="topics"><span class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span>议题</a>
+      <a data-p="sigs"><span class="ic"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>信号</a>
+      <a data-p="chain"><span class="ic"><svg viewBox="0 0 24 24"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg></span>研判链路</a>
+      <a data-p="src"><span class="ic"><svg viewBox="0 0 24 24"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg></span>信源</a>
+      <a data-p="crawl"><span class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>采集流水</a>
+      <a data-p="report"><span class="ic"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>报告中心</a>
+      <a data-p="brand"><span class="ic"><svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></span>品牌监测</a>
+    </nav>
+    <div class="grp">系统</div>
+    <nav class="nav">
+      <a data-p="custom"><span class="ic"><svg viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg></span>定制中心<span class="badge">1</span></a>
+    </nav>
+
+    <!-- 用户登录卡片 -->
+    <div class="usercard" onclick="showToast('已打开账号设置（演示）：套餐 / Token 余量 / 登出')" title="账号设置 / 登出">
+      <div class="uava">林</div>
+      <div>
+        <div class="un">lynn <span class="upb">Pro</span></div>
+        <div class="up">Token 余量 3.2M · 退出</div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+
+  <!-- ============ 仪表盘 ============ -->
+  <section class="page on" id="p-dash">
+    <div class="topbar"><h1>总览</h1><span class="sub">系统全局状态 · 实时刷新</span><button class="newtask">＋ 新建议题</button></div>
+    <section class="kpis">
+      <div class="kpi"><div class="t">◎ 在监议题</div><div class="v">2 <small>/ 4</small></div><div class="d"><span style="color:var(--blue)">值守 2</span> · <span style="color:var(--orange)">研判 1</span> · <span style="color:var(--green)">结题 1</span></div></div>
+      <div class="kpi"><div class="t">◈ 风险信号</div><div class="v">10</div><div class="d"><span style="color:var(--red)">高危 4</span> · <span style="color:var(--orange)">中危 4</span> · <span style="color:var(--blue)">关注 2</span></div></div>
+      <div class="kpi"><div class="t">📡 信源节点</div><div class="v">18</div><div class="d">8 平台热榜 · 6 检索 · 4 深挖</div></div>
+      <div class="kpi"><div class="t">📈 今日新增信息量</div><div class="v">1.4<small>万条</small></div><div class="d">微博 62% · 头条 21% · 知乎 9%</div></div>
+      <div class="kpi"><div class="t">⚡ Token 用量</div><div class="v">2.9M</div><div class="d">入 2.7M（含缓存 1.7M）· 出 211.7k</div></div>
+    </section>
+    <section class="panel">
+      <div class="phead"><h3>⚡ LLM Token 消耗</h3><span class="desc" style="margin:0 0 0 8px">4 个议题累计</span>
+        <div class="right" style="display:flex;gap:10px;align-items:center"><span class="chip on">全部</span><span class="chip">GLM-4.7 默认</span><span class="chip">DeepSeek V4</span><span style="margin-left:14px">30天 ▾</span></div></div>
+      <div class="tokwrap" style="margin-top:14px">
+        <div class="tokleft">
+          <div class="desc">合计（输入+输出）</div><div class="big">2.9M</div><div class="desc">4 个议题</div>
+          <div class="bar-row"><div class="lab"><span>输入（未命中）</span><b style="color:var(--blue)">985.4k</b></div><div class="bar"><i style="width:58%;background:var(--blue)"></i></div></div>
+          <div class="bar-row"><div class="lab"><span>缓存命中</span><b style="color:var(--green)">1.7M</b></div><div class="bar"><i style="width:100%;background:var(--green)"></i></div></div>
+          <div class="bar-row"><div class="lab"><span>输出</span><b style="color:var(--purple)">211.7k</b></div><div class="bar"><i style="width:13%;background:var(--purple)"></i></div></div>
+          <div class="hitrate"><span>缓存命中率</span><b>64%</b></div>
+        </div>
+        <div style="flex:1;padding-left:26px">
+          <div class="legend"><span><span class="dot" style="background:var(--blue)"></span>输入</span><span><span class="dot" style="background:var(--purple)"></span>输出</span><span><span class="dot" style="background:var(--green)"></span>缓存读</span></div>
+          <div class="chart">
+            <div class="col"><div class="stack" style="height:78px"><i class="s-in" style="height:62%"></i><i class="s-out" style="height:6%"></i><i class="s-cache" style="height:32%"></i></div><div class="x">09-17</div></div>
+            <div class="col"><div class="stack" style="height:36px"><i class="s-in" style="height:55%"></i><i class="s-cache" style="height:45%"></i></div><div class="x">09-19</div></div>
+            <div class="col"><div class="stack" style="height:206px"><i class="s-in" style="height:70%"></i><i class="s-out" style="height:5%"></i><i class="s-cache" style="height:25%"></i></div><div class="x">09-21</div></div>
+            <div class="col"><div class="stack" style="height:112px"><i class="s-in" style="height:64%"></i><i class="s-cache" style="height:36%"></i></div><div class="x">09-23</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section class="panel">
+      <div class="phead"><h3>📈 全局热度时间线</h3><span class="desc" style="margin-left:8px">全部议题 · 近 7 天 · 快照对比</span>
+        <div class="right">🔺升温 3 · 🔻降温 5 · ➖持平 9 <span style="margin-left:14px;color:var(--blue)">查看议题 ↗</span></div></div>
+      <div class="heat"><i style="height:12%"></i><i style="height:16%"></i><i style="height:22%"></i><i style="height:31%"></i><i class="peak" style="height:96%"></i><i class="peak" style="height:58%"></i><i style="height:24%"></i></div>
+      <div class="heat-x"><span>09-17</span><span>09-18</span><span>09-19</span><span>09-20</span><span>09-21 爆发</span><span>09-22 回落</span><span>09-23</span></div>
+    </section>
+    <section class="grid2">
+      <div class="panel">
+        <div class="phead"><h3>⚡ 活动流</h3><span class="right">47 条事件 · 查看议题 ↗</span></div>
+        <div class="flowtags" style="margin-top:12px"><span class="ftag">tool_use 14</span><span class="ftag">tool_result 14</span><span class="ftag">text 4</span><span class="ftag">thinking 8</span><span class="ftag">result 3</span><span class="ftag">approve 1</span></div>
+        <div class="msg"><span class="who">advocate</span><div class="bubble">「平台已立案」结论目前仅有闲鱼官方回应单一信源，建议并行检索网信部门通报与第三方媒体交叉验证后再结题。</div><span class="when">5h 前</span></div>
+        <div class="msg"><span class="who u">user</span><div class="bubble">收到，优先查首发曝光的信源和时间线？</div><span class="when">5h 前</span></div>
+        <div class="msg"><span class="who">worker#2</span><div class="bubble">已完成传播路径子题：9/21 14:02 河北经视首发 → 17:40 登顶微博热搜第一，证据 12 条已挂链。</div><span class="when">4h 前</span></div>
+        <div class="msg"><span class="who">sentinel</span><div class="bubble">值守巡检：微博热榜命中关键词「二手平台 引流」，热度 🔺 +212%，已自动并入议题 #1。</div><span class="when">12m 前</span></div>
+      </div>
+      <div class="panel">
+        <div class="phead"><h3>◈ 信号</h3><span class="right">全部 ↗</span></div>
+        <div style="margin-top:8px">
+          <div class="sig"><span class="lv high">高危</span><div class="body"><div class="bt">跨平台引流暗语蔓延</div><div class="bs"><b>议题：闲鱼涉黄与黑灰产</b> ·「处宝可约」类暗语向转转/孔夫子等平台扩散，命中 37 帖</div></div><span class="when">5h 前</span></div>
+          <div class="sig"><span class="lv high">高危</span><div class="body"><div class="bt">涉未成年人指控待核实</div><div class="bs"><b>议题：闲鱼涉黄与黑灰产</b> · 媒体报道提及未成年人线索，官方通报未确认，verifier 标注「存疑」</div></div><span class="when">5h 前</span></div>
+          <div class="sig"><span class="lv high">高危</span><div class="body"><div class="bt">负面声量占比 71%</div><div class="bs"><b>议题：闲鱼涉黄与黑灰产</b> · 近 7 天 12.6 万条，负面 90,065 条，情感模型置信 0.87</div></div><span class="when">6h 前</span></div>
+          <div class="sig"><span class="lv mid">中危</span><div class="body"><div class="bt">竞品平台借势营销</div><div class="bs"><b>议题：闲鱼涉黄与黑灰产</b> · 3 个竞品账号发布「更安全」对比内容，互动上升</div></div><span class="when">7h 前</span></div>
+          <div class="sig"><span class="lv mid">中危</span><div class="body"><div class="bt">二次发酵风险</div><div class="bs"><b>议题：黑灰产治理专题</b> · 威胁猎人报告被大V引用，预测 48h 内或现解读潮</div></div><span class="when">9h 前</span></div>
+          <div class="sig"><span class="lv low">关注</span><div class="body"><div class="bt">官方通报全文已归档</div><div class="bs">9/23 调查结果公告入证据库，链接+抓取时间已落表</div></div><span class="when">9h 前</span></div>
+        </div>
+      </div>
+    </section>
+  </section>
+
+  <!-- ============ 热点追踪（仿糖果梦热榜 daily） ============ -->
+  <section class="page" id="p-hot">
+    <div class="topbar"><h1>热点追踪</h1><span class="sub">全网热榜聚合 + AI 日报沉淀 · 热榜负责发现，日报负责背景</span>
+      <button class="btn" style="margin-left:auto" onclick="showToast('日报 RSS 已复制（演示）')">📰 日报 RSS</button>
+      <button class="btn" onclick="showToast('热榜 RSS 已复制（演示）')">📡 热榜 RSS</button></div>
+
+    <!-- 视图切换：热榜 / 日报 -->
+    <div class="custombar" style="margin:14px 0 4px">
+      <span class="chipc on" id="vw-hot" onclick="switchHotView('hot')">🔥 热榜</span>
+      <span class="chipc" id="vw-daily" onclick="switchHotView('daily')">🗓 日报</span>
+      <span style="margin-left:auto;font-size:12px;color:var(--sub)">热榜负责发现，日报负责沉淀背景</span>
+    </div>
+    <div id="hot-view">
+    <!-- 分类标签（六大分类，仿糖果梦首页） -->
+    <div class="custombar" style="margin:14px 0 12px">
+      <span class="chipc on" data-h="all" onclick="pickHotCat('all')">全部</span><span class="chipc" data-h="news" onclick="pickHotCat('news')">新闻</span><span class="chipc" data-h="ai" onclick="pickHotCat('ai')">AI</span><span class="chipc" data-h="tech" onclick="pickHotCat('tech')">科技</span><span class="chipc" data-h="media" onclick="pickHotCat('media')">媒体</span><span class="chipc" data-h="fin" onclick="pickHotCat('fin')">财经</span><span class="chipc" data-h="stock" onclick="pickHotCat('stock')">股讯</span>
+      <span style="margin-left:auto;font-size:12px;color:var(--sub)">60 源 · newsnow/DailyHotApi/RSSHub/官方RSS/自写 五路供给 · 每分类一份独立日报 + RSS</span>
+    </div>
+    <div class="panel">
+      <div class="phead"><h3 id="hot-title">🔥 全部热榜 · 6 分类 25 源</h3><span class="right">每小时快照 · <button class="btn" onclick="showToast('已暂停自动刷新（演示）')">⏸ 暂停刷新</button></span></div>
+      <div id="hot-boards" class="cards" style="margin-top:12px"></div>
+    </div>
+    </div><!-- /hot-view -->
+
+    <div id="daily-view" style="display:none">
+    <!-- 今日日报 hero -->
+    <div class="panel" style="padding:0;overflow:hidden">
+      <div style="height:110px;background:linear-gradient(120deg,#2c3a5e,#3b6ef5 55%,#7c5cf0)"></div>
+      <div style="padding:18px 22px">
+        <h2 style="font-size:19px;margin-bottom:8px">闲鱼事件回落治理升温，二手品类流量窗口开启，黑灰产治理进入政策期</h2>
+        <p style="font-size:13.5px;color:#3a4258;line-height:1.75">今日舆情呈现三线共振格局：事件端，闲鱼涉黄调查结果公布后热度回落 44%，但讨论转向黑灰产治理与跨平台引流机制，议题生命周期进入深水区；政策端，网信部门"清朗"系列专项行动通报密集，二手交易平台被点名建立跨平台联防机制，治理窗口正式打开；竞争端，食安投诉事件挤占品类讨论流量，监测品牌方获得 3-5 天营销窗口——数据洞察层由 8 平台热榜与新闻站采集统计生成，趋势研判经质疑 Agent 审查。</p>
+        <div style="margin:10px 0"><span class="pill gr">治理窗口</span><span class="pill gr">跨平台引流</span><span class="pill gr">品类流量</span><span class="pill gr">政策期</span><span class="pill gr">营销时机</span></div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <span class="mono">2026-09-23</span>
+          <span class="pill gr" style="cursor:pointer" onclick="showToast('已复制日报永久链接：/daily/summary/2026-09-23（演示）')">/daily/summary/2026-09-23</span>
+          <span class="cm" style="font-size:11px;color:var(--sub)">⚡ AI 平台：智谱 BigModel · 模型：GLM-4.7 · Token 消耗：512,048 · 数据源：8 平台热榜 + 新闻站 · 提供人：YUQING 值守管线</span>
+          <span style="margin-left:auto;display:flex;gap:8px">
+            <button class="btn dark" onclick="openDaily('d23')">阅读今日日报</button>
+            <button class="btn" onclick="showToast('已收藏到归档（演示）')">☆ 收藏</button>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI 模式（热点三维解读）：已移除——与日报内容重复，且属糖果梦"AI模式"栏目形态，如需可从 git 历史恢复 -->
+
+    <!-- 选题雷达（自媒体模式）：已移除，待平台完整后启用——设计稿存档见 git 历史与复刻方案文档 -->
+
+    <!-- 日报归档流（带缩略图，仿糖果梦日报列表） -->
+    <div class="panel">
+      <div class="phead"><h3>🗓 日报归档</h3><span class="right">长期可回看、可搜索、可订阅 · <button class="btn dark" onclick="openDaily('d23')">📖 阅读今日日报</button></span></div>
+      <div class="archbar" style="margin-top:12px">
+        <span class="chipc on" data-a="all" onclick="pickArch('all')">全部</span><span class="chipc" data-a="综合" onclick="pickArch('综合')">综合</span><span class="chipc" data-a="新闻" onclick="pickArch('新闻')">新闻</span><span class="chipc" data-a="AI" onclick="pickArch('AI')">AI</span><span class="chipc" data-a="科技" onclick="pickArch('科技')">科技</span><span class="chipc" data-a="媒体" onclick="pickArch('媒体')">媒体</span><span class="chipc" data-a="财经" onclick="pickArch('财经')">财经</span><span class="chipc" data-a="股讯" onclick="pickArch('股讯')">股讯</span>
+      </div>
+      <div id="arch-list"></div>
+      <div style="margin-top:12px;display:flex;gap:6px;align-items:center">
+        <button class="btn">← 上一页</button><span class="chip on">1</span><span class="chip">2</span><span class="chip">3</span><span class="chip">…</span><span class="chip">20</span><button class="btn">下一页 →</button>
+      </div>
+    </div>
+    </div><!-- /daily-view -->
+
+    <div class="panel">
+      <div class="desc" style="margin:0">页面定位：本页 = 实时发现（热榜聚合）+ 每日沉淀（AI 日报）+ 长期回看（归档 + RSS）。与仪表盘的区别：仪表盘回答"我的系统现在怎么样"，本页回答"全网正在发生什么、过去发生了什么"。底层数据同源：热榜卡片读快照表，日报读 reporter 产物，归档=报告中心按分类的视图。</div>
+    </div>
+  </section>
+
+  <!-- ============ 对话 ============ -->
+  <section class="page" id="p-chat">
+    <div class="topbar"><h1>对话</h1><span class="sub">人在环路 · 与任意 Agent 开会话</span>
+      <button class="btn" style="margin-left:auto" onclick="openDrawer('board')">🧩 团队</button>
+    </div>
+    <div class="chatwrap" style="margin-top:16px;grid-template-columns:250px 1fr">
+      <div class="panel" style="margin:0">
+        <button class="newchat">＋ 新建对话</button>
+        <div class="convlist">
+          <div class="conv on" data-c="c1"><div class="ct">闲鱼涉黄传播路径讨论</div><div class="cm">🤖 主 Agent · 09-21 18:02 · 议题#1</div></div>
+          <div class="conv" data-c="c2"><div class="ct">官方回应交叉核实</div><div class="cm">🤖 主 Agent · 09-22 09:40 · 议题#1</div></div>
+          <div class="conv" data-c="c3" data-ro="1"><div class="ct">值守通知 · 暗语变体</div><div class="cm">📡 系统通知 · 09-22 10:14 · 只读</div></div>
+        </div>
+      </div>
+      <div class="panel" style="margin:0">
+        <!-- 空态（新建对话时） -->
+        <div class="empty" id="chat-empty" style="display:none">
+          <div class="eicon">🤖</div>
+          <div>开始和「Agent」对话</div>
+        </div>
+        <!-- 会话视图 -->
+        <div class="chat-view" id="chat-view">
+          <div class="chatbox" id="chat-msgs" style="flex:1"></div>
+          <div class="chatbar">
+            <div class="chatrow">
+              <div class="agentsel" style="display:flex;align-items:center;gap:7px;cursor:default" title="子 Agent（质疑/核实/撰稿/值守）由系统自动调度，不开放直连">
+                🤖 主 Agent <span style="font-size:10.5px;color:var(--sub)">子 Agent 自动调度</span>
+              </div>
+              <input placeholder="向主 Agent 提问 / 注入 hint / 插队高优意图…" id="chat-input">
+              <button class="send">➤</button>
+            </div>
+            <div class="modelline">⚡ 默认（GLM-4.7）<span class="link" style="margin-left:6px">更换 ▾</span> · 本会话 Token：入 45.2k · 出 3.1k</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 议题 ============ -->
+  <section class="page" id="p-topics">
+    <div class="topbar"><h1>议题</h1><span class="sub">监测研判任务 · 全部状态</span><button class="newtask">＋ 新建议题</button></div>
+    <div class="panel" style="margin-top:16px">
+      <table>
+        <tr><th>ID</th><th>议题</th><th>研判目标</th><th>状态</th><th>子题进度</th><th>热度</th><th>操作</th></tr>
+        <tr><td class="mono">t-xy-hs</td><td><b>⭐ 闲鱼涉黄与黑灰产</b></td><td>厘清事件全貌、评估平台影响面、产出应对建议报告</td><td><select class="tsel" data-k="t-xy-hs 状态"><option selected>● 研判中</option><option>◍ 值守中</option><option>❚❚ 已暂停</option><option>✓ 已结题</option></select></td><td>4/5</td><td>🔺 12.6万条</td><td class="ops"><button class="btn dark">进入 →</button><button class="btn">⋯</button></td></tr>
+        <tr><td class="mono">t-hhz-zl</td><td><b>网络黑灰产治理专题</b></td><td>沉淀产业链结构、治理动向与典型案例库</td><td><select class="tsel" data-k="t-hhz-zl 状态"><option selected>● 研判中</option><option>◍ 值守中</option><option>❚❚ 已暂停</option><option>✓ 已结题</option></select></td><td>2/4</td><td>➖ 平稳</td><td class="ops"><button class="btn dark">进入 →</button><button class="btn">⋯</button></td></tr>
+        <tr><td class="mono">t-er-platform</td><td><b>二手交易平台口碑监测</b></td><td>长期值守：转转/孔夫子/闲鱼相关风险信号捕捉</td><td><select class="tsel" data-k="t-er-platform 状态"><option selected>◍ 值守中</option><option>● 研判中</option><option>❚❚ 已暂停</option><option>✓ 已结题</option></select></td><td>—</td><td>➖ 日均 800 条</td><td class="ops"><button class="btn dark">进入 →</button><button class="btn">⋯</button></td></tr>
+        <tr><td class="mono">t-315-2026</td><td><b>315 消费维权季前瞻</b></td><td>历史案例复盘 + 今年热点预测</td><td><select class="tsel" data-k="t-315-2026 状态"><option selected>✓ 已结题</option><option>● 研判中</option><option>◍ 值守中</option></select></td><td>3/3</td><td>—</td><td class="ops"><button class="btn dark">进入 →</button><button class="btn">⋯</button></td></tr>
+      </table>
+    </div>
+    <div class="panel">
+      <div class="phead"><h3>议题详情 · 闲鱼涉黄与黑灰产</h3><span class="right">LLM 已配置 · ● 研判中</span></div>
+      <div class="chips" style="margin-top:12px"><span class="chip on">会话</span><span class="chip">总览</span><span class="chip">研判链路</span><span class="chip">信号</span><span class="chip">证据库</span><span class="chip">审批</span><span class="chip">报告</span></div>
+      <div class="heat" style="margin-top:16px"><i style="height:10%"></i><i style="height:14%"></i><i style="height:20%"></i><i style="height:33%"></i><i class="peak" style="height:98%"></i><i class="peak" style="height:60%"></i><i style="height:22%"></i></div>
+      <div class="heat-x"><span>酝酿期 09-17</span><span>09-18</span><span>09-19</span><span>09-20</span><span>爆发期 09-21（单日 6.8万，占全周 54%）</span><span>回落期 09-22</span><span>09-23</span></div>
+    </div>
+  </section>
+
+  <!-- agent-teams 组队演示（属于对话页，随对话页显隐） -->
+  <div id="team-src" style="display:none;max-width:1080px;margin:14px auto 0">
+    <div class="panel" id="team-draft">
+      <div class="phead"><h3>🧩 组队草案 · 闲鱼涉黄与黑灰产</h3><span class="right">dsh agent-teams · 草案待确认</span></div>
+      <div class="desc" style="margin-top:8px">拆题器已产出研判方案：以下成员阵容与任务依赖经你确认后才会启动（草案→确认→看板，仿 dsh-agent-teams）。</div>
+      <div class="grid2" style="margin-bottom:12px">
+        <div class="card2"><h4>成员阵容（模型 / 工具已配）</h4>
+          <div class="d2">
+            🧭 规划者 · GLM-4.7 · 链路读写<br>
+            ⚙ 传播路径 Worker · DeepSeek V4 · 采集+检索<br>
+            ⚙ 暗语检测 Worker · DeepSeek V4 · 暗语库+快照<br>
+            🔍 核实员 · GLM-4.7 · 证据库写<br>
+            ⚔ 质疑者 · GLM-4.7 · 链路读写
+          </div></div>
+        <div class="card2"><h4>任务依赖与门禁顺序</h4>
+          <div class="d2">传播取证 ┐<br>暗语取证 ┴→ 核实 → 质疑 → 成稿（reporter）<br>验证不过 → 自动生成"补证任务"回到取证</div></div>
+      </div>
+      <button class="btn dark" onclick="startTeam()">✅ 确认并启动团队</button>
+      <button class="btn" onclick="showToast('已打开草案编辑（演示）')">调整成员/依赖</button>
+    </div>
+    <div class="panel" id="team-board" style="display:none">
+      <div class="phead"><h3>🧩 成员看板 · 闲鱼涉黄团队</h3><span class="right"><button class="btn" onclick="openDrawer('net')">🕸 Agent 网络</button>&nbsp; ● 运行中 · 成员可续聊、干完不散</span></div>
+      <div class="cards" style="margin-top:12px">
+        <div class="card2"><h4>⚙ 传播路径 Worker</h4><div class="d2">任务：时间线还原<br>状态：<b style="color:var(--blue)">● 运行中</b> · 已挂证据 12 条</div><button class="btn" onclick="openDrawer('chat','worker1')">💬 续聊</button></div>
+        <div class="card2"><h4>⚙ 暗语检测 Worker</h4><div class="d2">任务：暗语跨平台扩散排查<br>状态：<b style="color:var(--sub)">◐ 等待前置：热榜快照</b></div><button class="btn" onclick="openDrawer('chat','worker2')">💬 续聊</button></div>
+        <div class="card2"><h4>🔍 核实员</h4><div class="d2">门禁位：验证<br>状态：<b style="color:var(--sub)">◐ 等待取证完成</b></div><button class="btn" onclick="openDrawer('chat','verifier')">💬 续聊</button></div>
+        <div class="card2"><h4>⚔ 质疑者</h4><div class="d2">门禁位：审查<br>状态：<b style="color:var(--sub)">◐ 等待核实通过</b></div><button class="btn" onclick="openDrawer('chat','advocate')">💬 续聊</button></div>
+      </div>
+      <div class="desc" style="margin-top:10px">mailbox：传播路径 Worker → 暗语检测 Worker：「转转平台也发现『厂uv』变体 ×3」，已送达 ↗</div>
+    </div>
+  </div>
+
+  <!-- ============ 信号 ============ -->
+  <section class="page" id="p-sigs">
+    <div class="topbar"><h1>信号</h1><span class="sub">Agent 产出的风险信号 · 每条挂证据</span>
+      <div class="right" style="display:flex;gap:6px"><span class="chip on">全部</span><span class="chip">高危</span><span class="chip">中危</span><span class="chip">关注</span></div>
+    </div>
+    <div class="panel" style="margin-top:16px">
+      <div class="sig"><span class="lv high">高危</span><div class="body"><div class="bt">跨平台引流暗语蔓延</div><div class="bs"><b>议题：闲鱼涉黄与黑灰产</b> ·「处宝可约」类暗语向转转/孔夫子扩散，命中 37 帖<br>证据：<span class="link">帖子×12</span> <span class="link">截图×3</span> <span class="link">抓取时间 09-22 10:14</span> · 检出器：暗语库 v7 + LLM 复核</div></div><span class="when">5h 前</span></div>
+      <div class="sig"><span class="lv high">高危</span><div class="body"><div class="bt">涉未成年人指控待核实</div><div class="bs"><b>议题：闲鱼涉黄与黑灰产</b> · 媒体报道提及未成年人线索，官方通报未确认<br>证据：<span class="link">报道原文×2</span> · verifier 标注「存疑：仅媒体单源，官方口径未含」</div></div><span class="when">5h 前</span></div>
+      <div class="sig"><span class="lv high">高危</span><div class="body"><div class="bt">负面声量占比 71%</div><div class="bs"><b>议题：闲鱼涉黄与黑灰产</b> · 近 7 天 126,249 条，负面 90,065 条（71.34%），中性 28.36%，正面 0.3%<br>证据：<span class="link">情感统计口径</span> · 模型置信 0.87 · 代码统计非 LLM 生成</div></div><span class="when">6h 前</span></div>
+      <div class="sig"><span class="lv mid">中危</span><div class="body"><div class="bt">竞品平台借势营销</div><div class="bs"><b>议题：二手平台口碑</b> · 3 个竞品账号发布「更安全」对比内容，累计互动 4.2 万</div></div><span class="when">7h 前</span></div>
+      <div class="sig"><span class="lv mid">中危</span><div class="body"><div class="bt">二次发酵风险</div><div class="bs"><b>议题：黑灰产治理专题</b> · 威胁猎人报告被大V引用，预测 48h 内或现解读潮</div></div><span class="when">9h 前</span></div>
+      <div class="sig"><span class="lv low">关注</span><div class="body"><div class="bt">官方通报全文已归档</div><div class="bs">9/23 调查结果公告入证据库，链接+抓取时间已落表</div></div><span class="when">9h 前</span></div>
+    </div>
+  </section>
+
+  <!-- ============ 研判链路 ============ -->
+  <section class="page" id="p-chain">
+    <div class="topbar"><h1>研判链路</h1><span class="sub">议题 #1 闲鱼涉黄与黑灰产 · 起点 → 子问题 → 证据 → 结论</span>
+      <div class="right">节点图例：<span class="pill gr">起点</span><span class="pill g">目标</span><span class="pill">意图/子题</span><span class="pill o">事实</span><span class="pill" style="background:#fdecec;color:var(--red)">信号</span></div>
+    </div>
+    <div class="panel" style="margin-top:16px">
+      <div class="graph">
+        <div class="gcol">
+          <div class="gnode"><b>🚩 起点 <span class="tag t-start">root</span></b><div class="st2">09-21 17:40 自动触发</div><div class="txt">微博热搜第一：闲鱼涉黄</div></div>
+          <div class="gnode"><b>💡 提示 <span class="tag t-start">hint</span></b><div class="st2">user 注入</div><div class="txt">"官方回应别只听一面之词"</div></div>
+        </div>
+        <div class="gcol">
+          <div class="gnode"><b>🎯 目标 <span class="tag t-goal">P9</span></b><div class="st2">✓ 已达成</div><div class="txt">厘清事件全貌与传播链</div></div>
+          <div class="gnode"><b>🎯 目标 <span class="tag t-goal">P8</span></b><div class="st2">● 进行中</div><div class="txt">评估平台影响面与应对建议</div></div>
+        </div>
+        <div class="gcol">
+          <div class="gnode"><b>◎ 意图 <span class="tag t-intent">i1</span></b><div class="st2">✓ 已完成 · worker#2</div><div class="txt">传播时间线还原</div></div>
+          <div class="gnode"><b>◎ 意图 <span class="tag t-intent">i2</span></b><div class="st2">✓ 已完成 · worker#3</div><div class="txt">信源交叉核实（官方回应）</div></div>
+          <div class="gnode"><b>◎ 意图 <span class="tag t-intent">i3</span></b><div class="st2">● 执行中 · worker#1</div><div class="txt">热度归因：为何 9/21 引爆</div></div>
+          <div class="gnode"><b>◎ 意图 <span class="tag t-intent">i4</span></b><div class="st2">● 执行中 · advocate 发起</div><div class="txt">暗语扩散是否涉及其他平台</div></div>
+        </div>
+        <div class="gcol">
+          <div class="gnode"><b>⚗ 事实 <span class="tag t-fact">f#1</span></b><div class="txt">9/21 14:02 河北经视首发 → 17:40 热搜第一 · 证据 12 条挂链</div></div>
+          <div class="gnode"><b>⚗ 事实 <span class="tag t-fact">f#2</span></b><div class="txt">9/23 官方调查结果公告（原文归档+时间戳）</div></div>
+          <div class="gnode"><b>◈ 信号 <span class="tag t-sig">s#1</span></b><div class="txt">暗语 37 帖跨平台扩散（高危）</div></div>
+          <div class="gnode"><b>◈ 存疑 <span class="tag t-sig">s#2</span></b><div class="txt">涉未成年人指控：仅媒体单源，verifier 打回</div></div>
+        </div>
+      </div>
+      <div class="desc" style="margin:8px 0 0">边类型：起点→目标（派生）· 目标→意图（拆解）· 意图→事实（产出）· 事实→信号（证明）· hint 可注入任意节点</div>
+    </div>
+  </section>
+
+  <!-- ============ 信源 ============ -->
+  <section class="page" id="p-src">
+    <div class="topbar"><h1>信源</h1><span class="sub">平台适配器健康度 · 跨议题共享</span><button class="newtask" style="margin-left:auto">＋ 接入信源</button></div>
+    <div class="panel" style="margin-top:16px">
+      <table>
+        <tr><th>信源</th><th>类型</th><th>状态</th><th>上次成功</th><th>今日条数</th><th>频控</th><th>备注</th></tr>
+        <tr><td><b>微博热榜</b></td><td>热榜</td><td><span class="st run">● 正常</span></td><td>12m 前</td><td>8,940</td><td>60s/次</td><td>Referer 头已修复</td></tr>
+        <tr><td><b>知乎热榜</b></td><td>热榜</td><td><span class="st run">● 正常</span></td><td>14m 前</td><td>1,203</td><td>60s/次</td><td>—</td></tr>
+        <tr><td><b>抖音热点</b></td><td>热榜</td><td><span class="st run">● 正常</span></td><td>11m 前</td><td>2,341</td><td>120s/次</td><td>—</td></tr>
+        <tr><td><b>头条热榜</b></td><td>热榜</td><td><span class="st run">● 正常</span></td><td>13m 前</td><td>1,877</td><td>60s/次</td><td>—</td></tr>
+        <tr><td><b>B站热门</b></td><td>热榜</td><td><span class="st pause">◐ 降级</span></td><td>2h 前</td><td>0</td><td>—</td><td>接口风控，已切 newsnow 兜底</td></tr>
+        <tr><td><b>newsnow 聚合</b></td><td>兜底</td><td><span class="st run">● 正常</span></td><td>9m 前</td><td>1,120</td><td>5min/次</td><td>11 平台聚合对账源</td></tr>
+        <tr><td><b>Tavily 检索</b></td><td>检索</td><td><span class="st run">● 正常</span></td><td>1h 前</td><td>86</td><td>按量</td><td>权威核查用</td></tr>
+        <tr><td><b>微博深挖（登录态）</b></td><td>深挖</td><td><span class="st err">✕ 待审批</span></td><td>—</td><td>—</td><td>10s/次</td><td>命中采集守则 R-02，等待人工审批</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ 采集流水 ============ -->
+  <section class="page" id="p-crawl">
+    <div class="topbar"><h1>采集流水</h1><span class="sub">采集层原始动作记录 · 可审计</span></div>
+    <div class="panel" style="margin-top:16px">
+      <table>
+        <tr><th>时间</th><th>信源</th><th>动作</th><th>入参/关键词</th><th>条数</th><th>命中议题</th><th>状态</th></tr>
+        <tr><td class="mono">14:32:07</td><td>微博热榜</td><td>热榜快照</td><td>—</td><td>50</td><td>#1 ✓</td><td><span class="st run">成功 312ms</span></td></tr>
+        <tr><td class="mono">14:31:55</td><td>newsnow</td><td>聚合对账</td><td>weibo/zhihu/top</td><td>150</td><td>#1 ✓</td><td><span class="st run">成功</span></td></tr>
+        <tr><td class="mono">14:28:11</td><td>Tavily</td><td>权威检索</td><td>"闲鱼 调查结果 公告"</td><td>8</td><td>#1 ✓</td><td><span class="st run">成功</span></td></tr>
+        <tr><td class="mono">14:25:40</td><td>微博深挖</td><td>评论采集</td><td>"闲鱼涉黄" 近7天</td><td>—</td><td>#1</td><td><span class="st err">拦截：需登录态，转审批</span></td></tr>
+        <tr><td class="mono">14:20:03</td><td>B站热门</td><td>热榜快照</td><td>—</td><td>0</td><td>—</td><td><span class="st pause">降级：切 newsnow</span></td></tr>
+        <tr><td class="mono">14:10:00</td><td>sentinel</td><td>值守巡检</td><td>关键词组「二手平台/引流/暗语」</td><td>17</td><td>#1 ✓ 自动并入</td><td><span class="st run">命中 +212%</span></td></tr>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ 报告中心 ============ -->
+  <section class="page" id="p-report">
+    <div class="topbar"><h1>报告中心</h1><span class="sub">只有「已结题且通过质疑」的链路才能成稿</span><button class="newtask">✎ 生成报告</button></div>
+    <div class="cards" style="margin-top:16px">
+      <div class="card2" style="cursor:pointer" onclick="openDrawer('report','r1')"><h4>📄 事件报告 · 从闲鱼涉黄舆情看网络黑灰产 <span class="pill o">待审核</span></h4>
+        <div class="d2">双层结构：PART01 数据洞察（12.6万条/情感/平台分布，代码统计出图）+ PART02 黑灰产专题（引用威胁猎人/公安部通报）。reporter 起草，等待人工审核数据口径。</div>
+        <span class="pill">议题 #1</span><span class="pill g">证据 47 条全挂链</span><span class="pill gr">09-23</span></div>
+      <div class="card2" style="cursor:pointer" onclick="openDrawer('report','r2')"><h4>📅 舆情日报 · 09-23 <span class="pill g">已发布</span></h4>
+        <div class="d2">三线共振：①闲鱼事件回落但治理议题升温 ②黑灰产治理进入政策窗口 ③二手品类流量被食安事件挤占——本品/监测方有 3-5 天营销窗口。</div>
+        <div style="margin:8px 0"><span class="pill gr">治理窗口</span><span class="pill gr">品类流量</span><span class="pill gr">食安挤占</span><span class="pill gr">营销时机</span></div>
+        <div class="cm" style="font-size:11px;color:var(--sub)">⚡ 生成署名：研判模型 GLM-4.7 · Token 512,048 · 数据源 8 平台热榜+新闻站 · 06:30 自动</div>
+        <span class="pill gr">值守自动</span><span class="pill g">已推送飞书 + RSS</span></div>
+      <div class="card2" style="cursor:pointer" onclick="openDrawer('report','r3')"><h4>📅 舆情日报 · 09-22 <span class="pill g">已发布</span></h4>
+        <div class="d2">回落期研判：热度 -44%，讨论转向治理议题；新增「竞品借势」信号。</div>
+        <span class="pill gr">值守自动</span></div>
+      <div class="card2" style="cursor:pointer" onclick="openDrawer('report','r4')"><h4>📊 专题复盘 · 315 消费维权季前瞻 <span class="pill g">已发布</span></h4>
+        <div class="d2">已结题议题成稿：历史三年案例复盘 + 今年预测，含影响力指数对比。</div>
+        <span class="pill gr">议题 t-315</span></div>
+    </div>
+    <div class="panel">
+      <div class="phead"><h3>🗂 日报归档 · 分类订阅</h3><span class="right">日报负责沉淀背景，热榜负责发现正在升温的——两者配合（仿糖果梦热榜）</span></div>
+      <div class="custombar" style="margin:10px 0 12px">
+        <span class="chipc on">综合</span><span class="chipc">财经</span><span class="chipc">科技/AI</span><span class="chipc">消费</span><span class="chipc">政策监管</span><span class="chipc">本品牌行业</span>
+      </div>
+      <table>
+        <tr><th>日期</th><th>日报标题（概念标签）</th><th>署名</th><th>操作</th></tr>
+        <tr><td class="mono">09-23</td><td>闲鱼事件回落，治理议题升温——品类流量窗口开启 <span class="pill gr">治理窗口</span><span class="pill gr">食安挤占</span></td><td class="mono">GLM-4.7 · 512k tok</td><td><button class="btn" onclick="openDrawer('report','r2')">预览</button> <button class="btn" onclick="showToast('RSS 已复制（演示）')">RSS</button></td></tr>
+        <tr><td class="mono">09-22</td><td>热度回落四成，讨论转向黑灰产治理 <span class="pill gr">回落期</span><span class="pill gr">竞品借势</span></td><td class="mono">GLM-4.7 · 488k tok</td><td><button class="btn" onclick="openDrawer('report','r3')">预览</button> <button class="btn" onclick="showToast('RSS 已复制（演示）')">RSS</button></td></tr>
+        <tr><td class="mono">09-21</td><td>闲鱼涉黄登顶热搜：爆发日全景 <span class="pill gr">爆发</span><span class="pill gr">平台回应</span></td><td class="mono">GLM-4.7 · 608k tok</td><td><button class="btn" onclick="showToast('预览（演示）')">预览</button> <button class="btn" onclick="showToast('RSS 已复制（演示）')">RSS</button></td></tr>
+      </table>
+      <div class="desc" style="margin-top:8px">按分类订阅 RSS（飞书/邮件/阅读器），归档长期可回看可搜索——日报详情保留正文、概念标签、生成署名，形成可检索的热点沉淀。</div>
+    </div>
+  </section>
+
+  <!-- ============ LLM ============ -->
+  <section class="page" id="p-llm">
+    <div class="topbar"><h1>LLM</h1><span class="sub">模型供应商管理 · 配置后可在路由策略中选用</span>
+      <button class="btn" style="margin-left:auto" onclick="showToast('已刷新供应商状态（演示）')">⟳ 刷新</button></div>
+    <div class="chatwrap" style="margin-top:16px;grid-template-columns:250px 1fr">
+      <div class="panel" style="margin:0">
+        <h3>供应商</h3><div class="desc">内置 + 自定义，点击切换编辑</div>
+        <div class="conv on" data-p="bigmodel" onclick="pickProv('bigmodel')"><div class="ct">🔮 智谱 BigModel</div><div class="cm">● 已启用 · 2 个模型</div></div>
+        <div class="conv" data-p="deepseek" onclick="pickProv('deepseek')"><div class="ct">🐋 DeepSeek</div><div class="cm">● 已启用 · 1 个模型</div></div>
+        <div class="conv" data-p="ollama" onclick="pickProv('ollama')"><div class="ct">🖥 Ollama（本地）</div><div class="cm">○ 未配置</div></div>
+        <div style="border-top:1px solid var(--line);margin-top:10px;padding-top:10px">
+          <div class="sess" style="color:var(--blue)" onclick="showToast('已打开「添加供应商」表单（演示）：名称/Base URL/连接方式')"><b>＋ 添加供应商</b></div>
+        </div>
+      </div>
+      <div class="panel" style="margin:0">
+        <div class="phead"><h3 id="prov-name">🔮 智谱 BigModel</h3><span class="pill g" style="align-self:center">已启用</span>
+          <div class="right" style="display:flex;gap:8px;align-items:center">连接方式
+            <select class="tsel" data-k="连接方式"><option selected>API Key</option><option>Azure</option><option>中转站</option></select></div></div>
+        <div class="kv" style="margin-top:12px">
+          <div>Base URL</div><div><input class="tsel" style="width:95%" value="https://open.bigmodel.cn/api/paas/v4" data-k="BigModel Base URL"></div>
+          <div>API Key</div><div><input class="tsel" type="password" style="width:95%" value="sk-ant-demo-3f8a...c21b" data-k="BigModel API Key"></div>
+        </div>
+        <div style="margin-top:14px"><h3 style="font-size:13px">模型列表</h3><div class="desc">上下文窗口 / 用途备注 · 可增删</div>
+          <div id="model-rows">
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px"><input class="tsel" style="flex:1" value="GLM-4.7（默认 · 200K · 判读/规划）" data-k="模型"><button class="btn" onclick="showToast('已设为默认模型（演示）')">⭐</button><button class="btn" onclick="showToast('编辑模型（演示）')">✎</button><button class="btn" onclick="showToast('已删除模型（演示）')">🗑</button></div>
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px"><input class="tsel" style="flex:1" value="GLM-4.7-Flash（预览 · 快速打标）" data-k="模型"><button class="btn" onclick="showToast('已设为默认模型（演示）')">⭐</button><button class="btn" onclick="showToast('编辑模型（演示）')">✎</button><button class="btn" onclick="showToast('已删除模型（演示）')">🗑</button></div>
+          </div>
+          <button class="btn" onclick="showToast('已添加模型行（演示）')">＋ 添加模型</button>
+          <button class="btn dark" onclick="showToast('连接测试通过 · 2 个模型可用（演示）')">测试连接</button>
+          <button class="btn" onclick="showToast('已停用该供应商（演示）')">停用</button>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="phead"><h3>🧭 路由策略</h3><span class="right">哪个 Agent 用哪个供应商的哪个模型</span></div>
+      <table style="margin-top:12px">
+        <tr><th>Agent</th><th>供应商 / 模型</th><th>理由</th></tr>
+        <tr><td><b>规划者 · 质疑者 · 核实员</b></td><td><select class="tsel" data-k="路由-研判类"><option selected>BigModel / GLM-4.7</option><option>DeepSeek / V4</option></select></td><td>研判类任务要推理质量，走默认 Profile</td></tr>
+        <tr><td><b>Worker 打标 / 摘要</b></td><td><select class="tsel" data-k="路由-打标"><option selected>DeepSeek / V4</option><option>BigModel / GLM-4.7-Flash</option></select></td><td>批量任务走低成本模型</td></tr>
+        <tr><td><b>撰稿员</b></td><td><select class="tsel" data-k="路由-撰稿"><option selected>BigModel / GLM-4.7 ＋ 人工审核</option><option>DeepSeek / V4 ＋ 人工审核</option></select></td><td>成稿必须过人工审核闸门</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ Agent ============ -->
+  <section class="page" id="p-agent">
+    <div class="topbar"><h1>Agent</h1><span class="sub">内置 Agent 的提示词/配置 · 自定义 Agent 管理</span><button class="newtask">＋ 新建 Agent</button></div>
+    <div class="panel" style="margin-top:16px"><h3>Agent 清单</h3><div class="desc">共 8 个</div>
+      <div class="cards">
+        <div class="card2"><h4>🎯 议题拆解器 goals <span class="pill gr">内置</span></h4><div class="d2">把议题拆成可研究的子问题（热度归因/传播/信源/情绪/影响）</div><span class="pill gr">工具 3</span></div>
+        <div class="card2"><h4>🧭 研判规划者 planner <span class="pill gr">内置</span></h4><div class="d2">读研判链路、判断子题可否结题、派生新意图（含质疑性意图）</div><span class="pill gr">工具 9</span></div>
+        <div class="card2"><h4>🤖 主 Agent mainagent <span class="pill gr">内置</span></h4><div class="d2">人在环路对话，注入 hint / 高优意图</div><span class="pill gr">工具 11</span></div>
+        <div class="card2"><h4>⚙ 分析 Worker <span class="pill gr">内置</span></h4><div class="d2">claim 子题 → 跑采集/检索/统计 → 证据+结论写回链路</div><span class="pill gr">工具 14</span></div>
+        <div class="card2"><h4>🛰 值守 sentinel <span class="pill o">自定义</span></h4><div class="d2">定时巡控热榜→关键词命中→热度跃升→自动开议题/推送预警</div><span class="pill gr">工具 4 · 只读+推送</span></div>
+        <div class="card2"><h4>⚔ 质疑者 advocate <span class="pill o">自定义</span></h4><div class="d2">对结论做对抗审查：找反例、查单源、验口径</div><span class="pill gr">工具 6 · 链路读写</span></div>
+        <div class="card2"><h4>🔍 核实员 verifier <span class="pill o">自定义</span></h4><div class="d2">证据链核查：回溯原文链接+抓取时间，核不过标「存疑」</div><span class="pill gr">工具 5 · 证据库写</span></div>
+        <div class="card2"><h4>✍ 撰稿员 reporter <span class="pill o">自定义</span></h4><div class="d2">只对已结题链路成稿；只读证据，禁止自行补充事实</div><span class="pill gr">工具 3 · 链路只读</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ MCP ============ -->
+  <section class="page" id="p-mcp">
+    <div class="topbar"><h1>MCP</h1><span class="sub">外部工具服务器 · Agent 经 MCP 调用</span><button class="newtask">＋ 接入 MCP</button></div>
+    <div class="panel" style="margin-top:16px">
+      <table>
+        <tr><th>Server</th><th>能力</th><th>挂载 Agent</th><th>状态</th></tr>
+        <tr><td><b>newsnow-mcp</b></td><td>多平台热榜查询（自部署实例）</td><td>sentinel · worker</td><td><span class="st run">● 已连接</span></td></tr>
+        <tr><td><b>tavily-mcp</b></td><td>联网检索（权威核查）</td><td>worker · verifier</td><td><span class="st run">● 已连接</span></td></tr>
+        <tr><td><b>jina-reader</b></td><td>URL → 正文 Markdown（证据归档）</td><td>verifier</td><td><span class="st run">● 已连接</span></td></tr>
+        <tr><td><b>feishu-notify</b></td><td>飞书推送（预警/日报）</td><td>sentinel · reporter</td><td><span class="st run">● 已连接</span></td></tr>
+        <tr><td><b>maigret-mcp</b></td><td>账号足迹排查（授权场景）</td><td>— 未挂载</td><td><span class="st pause">◐ 已装未启用</span></td></tr>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ Skill ============ -->
+  <section class="page" id="p-skill">
+    <div class="topbar"><h1>Skill</h1><span class="sub">给 Agent 装"舆情手艺"的技能包</span><button class="newtask">＋ 新建 Skill</button></div>
+    <div class="cards" style="margin-top:16px">
+      <div class="card2"><h4>📈 快照对比</h4><div class="d2">相邻时间片热度/榜位对比，产出 🔺🔻➖ 趋势标记与升温速率</div><span class="pill gr">sentinel · planner</span></div>
+      <div class="card2"><h4>🏷 情感打标</h4><div class="d2">正/中/负三分类 + 置信度，低置信自动转 LLM 复核队列</div><span class="pill gr">worker</span></div>
+      <div class="card2"><h4>🗯 暗语变体库</h4><div class="d2">引流/灰产暗语正则+向量双通道检出，周更变体</div><span class="pill gr">sentinel · worker</span></div>
+      <div class="card2"><h4>⛓ 证据挂链</h4><div class="d2">结论强制挂证据：原文链接+抓取时间+口径说明，缺链拒收</div><span class="pill gr">worker · verifier</span></div>
+      <div class="card2"><h4>🗞 报告模板</h4><div class="d2">日报/事件报告双层骨架（数据洞察+专题深研），口径自动标注</div><span class="pill gr">reporter</span></div>
+      <div class="card2"><h4>🔍 历史相似事件</h4><div class="d2">向量检索历史事件库，给研判提供先例与演化参照</div><span class="pill gr">planner</span></div>
+    </div>
+  </section>
+
+  <!-- ============ 工具 ============ -->
+  <section class="page" id="p-tools">
+    <div class="topbar"><h1>工具</h1><span class="sub">Agent 可调用的原子能力 · 权限面即安全面</span></div>
+    <div class="panel" style="margin-top:16px">
+      <table>
+        <tr><th>工具</th><th>类别</th><th>说明</th><th>权限（可改）</th><th>调用方</th></tr>
+        <tr><td><b>hotlist.snapshot</b></td><td>采集</td><td>平台热榜快照（8 平台适配器）</td><td><select class="tsel" data-k="hotlist.snapshot.权限"><option selected>只读</option><option>只读 · 计量</option><option>需审批</option><option>停用</option></select></td><td>sentinel · worker</td></tr>
+        <tr><td><b>search.web</b></td><td>检索</td><td>Tavily 联网检索</td><td><select class="tsel" data-k="search.web.权限"><option selected>只读 · 计量</option><option>只读</option><option>需审批</option><option>停用</option></select></td><td>worker · verifier</td></tr>
+        <tr><td><b>db.ro_query</b></td><td>数据</td><td>五表库只读 SQL（信息/快照/聚类）</td><td><select class="tsel" data-k="db.ro_query.权限"><option selected>只读 · 白名单表</option><option>只读</option><option>停用</option></select></td><td>全部</td></tr>
+        <tr><td><b>evidence.archive</b></td><td>证据</td><td>URL→正文→归档（带时间戳）</td><td><select class="tsel" data-k="evidence.archive.权限"><option selected>写证据库</option><option>需审批</option><option>停用</option></select></td><td>verifier</td></tr>
+        <tr><td><b>chain.write</b></td><td>链路</td><td>写研判链路节点/边</td><td><select class="tsel" data-k="chain.write.权限"><option selected>写链路</option><option>需审批</option><option>停用</option></select></td><td>planner · worker · advocate</td></tr>
+        <tr><td><b>push.notify</b></td><td>推送</td><td>飞书/企微预警与日报推送</td><td><select class="tsel" data-k="push.notify.权限"><option selected>仅通知</option><option>需审批</option><option>停用</option></select></td><td>sentinel · reporter</td></tr>
+        <tr><td><b>crawl.deep</b></td><td>采集</td><td>登录态深挖（评论/帖文）</td><td><select class="tsel" data-k="crawl.deep.权限" style="border-color:var(--red);color:var(--red)"><option selected>需审批</option><option>停用</option></select></td><td>worker（审批后）</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ 采集守则 ============ -->
+  <section class="page" id="p-rules">
+    <div class="topbar"><h1>采集守则</h1><span class="sub">工具执行前按优先级逐条匹配，首条命中生效（对应 ARTEX 拦截规则）</span>
+      <div style="margin-left:auto;display:flex;gap:8px"><button class="btn">守则范围</button><button class="btn dark">＋ 新建守则</button></div></div>
+    <div class="panel" style="margin-top:16px">
+      <table>
+        <tr><th>优先级</th><th>名称</th><th>目标</th><th>类型</th><th>模式</th><th>策略（可改）</th><th>启用</th></tr>
+        <tr><td>10</td><td><b>登录态深挖需审批</b></td><td>工具</td><td>字符串</td><td class="mono">crawl.deep</td><td><select class="tsel" data-k="R-10 策略"><option selected>申请</option><option>禁止</option><option>停用规则</option></select></td><td><input type="checkbox" class="tog" data-k="R-10" checked></td></tr>
+        <tr><td>20</td><td><b>PII 自动脱敏</b></td><td>输出内容</td><td>正则</td><td class="mono">(手机号|身份证|住址)模式</td><td><select class="tsel" data-k="R-20 策略"><option selected>改写</option><option>申请</option><option>禁止</option></select></td><td><input type="checkbox" class="tog" data-k="R-20" checked></td></tr>
+        <tr><td>30</td><td><b>频控保护</b></td><td>采集</td><td>规则</td><td class="mono">同源 &lt; 60s → 排队</td><td><select class="tsel" data-k="R-30 策略"><option selected>限流</option><option>申请</option></select></td><td><input type="checkbox" class="tog" data-k="R-30" checked></td></tr>
+        <tr><td>40</td><td><b>域外目标拒绝</b></td><td>输入内容</td><td>字符串</td><td class="mono">非白名单域名</td><td><select class="tsel" data-k="R-40 策略"><option selected>禁止</option><option>申请</option></select></td><td><input type="checkbox" class="tog" data-k="R-40" checked></td></tr>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ 审批记录 ============ -->
+  <section class="page" id="p-approve">
+    <div class="topbar"><h1>审批记录</h1><span class="sub">Agent 申请的危险/合规动作 · 人工裁决</span></div>
+    <div class="panel" style="margin-top:16px">
+      <table>
+        <tr><th>时间</th><th>申请人</th><th>动作</th><th>理由</th><th>守则命中</th><th>操作</th></tr>
+        <tr><td class="mono">14:25:40</td><td>worker#1</td><td class="mono">crawl.deep 微博评论"闲鱼涉黄"</td><td>情绪焦点子题需要评论区一手语料，热榜摘要不足以支撑结论</td><td>R-10 登录态深挖</td><td class="ops" id="ap-1"><button class="btn dark" onclick="resolveAp(1,true)">批准</button><button class="btn" onclick="resolveAp(1,false)">拒绝</button></td></tr>
+        <tr><td class="mono">09-22 11:03</td><td>reporter</td><td class="mono">report.publish 事件报告</td><td>链路已结题 + advocate 无异议</td><td>—</td><td><span class="st done">✓ 已批准（附口径批注）</span></td></tr>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ 日志 ============ -->
+  <section class="page" id="p-logs">
+    <div class="topbar"><h1>日志</h1><span class="sub">后端实时日志（engine / sentinel / planner / worker / guard …）</span>
+      <div class="right" style="display:flex;gap:6px"><span class="chip on">全部</span><span class="chip">info</span><span class="chip">warn</span><span class="chip">error</span></div></div>
+    <div class="panel" style="margin-top:16px">
+      <div class="logline"><span class="tm">14:32:07</span><span class="tg">engine</span><span>YUQING v0.2 backend listening on :8010 (workers=3)</span></div>
+      <div class="logline"><span class="tm">14:32:08</span><span class="tg">config</span><span>LLM configured from DB: openai-compat / glm-4.7</span></div>
+      <div class="logline"><span class="tm">14:32:11</span><span class="tg">sentinel</span><span>巡检完成：17 平台热榜 · 命中「二手平台 引流」→ 并入议题 t-xy-hs</span></div>
+      <div class="logline"><span class="tm">14:32:40</span><span class="tg">planner</span><span>议题 t-xy-hs 第 3 轮规划：派生意图 i4（暗语跨平台扩散）</span></div>
+      <div class="logline warn"><span class="tm">14:25:40</span><span class="tg">guard</span><span class="">intercept: crawl.deep 命中守则 R-10（登录态深挖），转人工审批</span></div>
+      <div class="logline"><span class="tm">14:22:18</span><span class="tg">worker#2</span><span>evidence.archive: 12 条证据落库（含原文 URL + 抓取时间）</span></div>
+      <div class="logline warn"><span class="tm">14:20:03</span><span class="tg">guard</span><span>bilibili 热榜风控拦截 → 自动降级 newsnow 兜底源</span></div>
+      <div class="logline err"><span class="tm">14:12:55</span><span class="tg">verifier</span><span>存疑标记 s#2：涉未成年人指控仅媒体单源，不符合结题口径</span></div>
+    </div>
+  </section>
+
+  <!-- ============ 系统配置 ============ -->
+  <section class="page" id="p-conf">
+    <div class="topbar"><h1>系统配置</h1><span class="sub">全局运行参数 · 改完即生效</span></div>
+
+    <div class="panel" style="margin-top:16px">
+      <h3>⏱ 调度与预警</h3><div class="desc">值守巡检、日报定时、推送触发条件</div>
+      <div class="grid2">
+        <div>
+          <div class="lab" style="font-size:12px;color:var(--sub);margin-bottom:4px">Sentinel 巡检间隔</div>
+          <select class="tsel" data-k="巡检间隔" style="width:100%;padding:8px"><option selected>每 60 分钟</option><option>每 30 分钟</option><option>每 2 小时</option></select>
+          <div class="lab" style="font-size:12px;color:var(--sub);margin:10px 0 4px">日报生成时间</div>
+          <input class="tsel" type="time" value="06:30" data-k="日报时间" style="width:100%">
+          <div class="lab" style="font-size:12px;color:var(--sub);margin:10px 0 4px">事件报告触发</div>
+          <select class="tsel" data-k="报告触发" style="width:100%"><option selected>仅结题后触发</option><option>高危信号即起草</option></select>
+        </div>
+        <div>
+          <div class="lab" style="font-size:12px;color:var(--sub);margin-bottom:4px">热度环比预警阈值（%）</div>
+          <input class="tsel" type="number" value="200" data-k="预警阈值" style="width:100%">
+          <div class="lab" style="font-size:12px;color:var(--sub);margin:10px 0 4px">高危信号 → 即时推送</div>
+          <input type="checkbox" class="tog" data-k="高危即时推送" checked><br>
+          <div class="lab" style="font-size:12px;color:var(--sub);margin:10px 0 4px">中危信号 → 聚合进日报</div>
+          <input type="checkbox" class="tog" data-k="中危聚合" checked>
+        </div>
+      </div>
+      <button class="btn dark" style="margin-top:14px" onclick="showToast('已保存：调度与预警配置')">保存调度与预警</button>
+    </div>
+
+    <div class="panel">
+      <h3>📣 推送渠道与代理</h3><div class="desc">出站通道与网络出口</div>
+      <div class="grid2">
+        <div>
+          <div class="lab" style="font-size:12px;color:var(--sub);margin-bottom:6px">飞书机器人（主）</div><input type="checkbox" class="tog" data-k="飞书" checked>
+          <div class="lab" style="font-size:12px;color:var(--sub);margin:10px 0 6px">企业微信（备）</div><input type="checkbox" class="tog" data-k="企微">
+          <div class="lab" style="font-size:12px;color:var(--sub);margin:10px 0 6px">邮件（日报）</div><input type="checkbox" class="tog" data-k="邮件" checked>
+        </div>
+        <div>
+          <div class="lab" style="font-size:12px;color:var(--sub);margin-bottom:4px">采集出站代理</div>
+          <input class="tsel" style="width:100%" value="http://127.0.0.1:7890（X 线显式指定）" data-k="采集代理">
+          <div class="lab" style="font-size:12px;color:var(--sub);margin:10px 0 4px">LLM 出站代理</div>
+          <select class="tsel" data-k="LLM代理" style="width:100%"><option selected>留空 · 走环境变量</option><option>同采集代理</option><option>直连</option></select>
+        </div>
+      </div>
+      <button class="btn dark" style="margin-top:14px" onclick="showToast('已保存：推送与代理配置')">保存推送与代理</button>
+    </div>
+
+    <div class="panel">
+      <h3>🗄 存储与合规</h3><div class="desc">数据落在哪、留多久、什么必须审</div>
+      <div class="grid2">
+        <div>
+          <div class="lab" style="font-size:12px;color:var(--sub);margin-bottom:4px">主存储</div>
+          <select class="tsel" data-k="主存储" style="width:100%"><option selected>SQLite（data/yuqing.db 五表）</option><option>PostgreSQL</option></select>
+          <div class="lab" style="font-size:12px;color:var(--sub);margin:10px 0 4px">数据保留（天）</div>
+          <input class="tsel" type="number" value="180" data-k="保留天数" style="width:100%">
+        </div>
+        <div>
+          <div class="lab" style="font-size:12px;color:var(--sub);margin-bottom:6px">采集守则（4 条规则）</div><input type="checkbox" class="tog" data-k="采集守则" checked>
+          <div class="lab" style="font-size:12px;color:var(--sub);margin:10px 0 6px">PII 自动脱敏</div><input type="checkbox" class="tog" data-k="PII脱敏" checked>
+          <div class="lab" style="font-size:12px;color:var(--sub);margin:10px 0 6px">登录态采集一律审批</div><input type="checkbox" class="tog" data-k="登录态审批" checked>
+        </div>
+      </div>
+      <button class="btn dark" style="margin-top:14px" onclick="showToast('已保存：存储与合规配置')">保存存储与合规</button>
+    </div>
+
+    <div class="panel">
+      <h3>🤖 多 Agent 编排（只读）</h3><div class="desc">角色构成在 Agent 页配置，此处仅为总览</div>
+      <div class="kv" style="margin-top:10px">
+        <div>主控</div><div>mainagent · 唯一用户入口</div>
+        <div>规划 / 执行</div><div>planner · worker×3（LangGraph 可替换）</div>
+        <div>质询</div><div>advocate · verifier（门禁位，见 Agent 页）</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 品牌监测 ============ -->
+  <section class="page" id="p-brand">
+    <div class="topbar"><h1>品牌监测</h1><span class="sub">本品 + 竞品阵营 · 每日竞品简报 · 一键成稿</span>
+      <button class="btn" style="margin-left:auto" onclick="showToast('已打开「添加监测品牌」表单（演示）：品牌名/关键词组/平台范围')">＋ 添加监测品牌</button></div>
+
+    <!-- 品牌阵营卡 -->
+    <div class="cards" style="margin-top:16px">
+      <div class="card2" style="border:2px solid var(--blue)"><h4>🏠 青梧茶饮 <span class="pill">本品</span></h4><div class="d2">现制茶饮 · 华东<br>今日声量 <b>8,240</b> · 好评率 91% · 环比 <b style="color:var(--green)">+12%</b><br>在监议题：新品上市（研判中）</div></div>
+      <div class="card2"><h4>🍵 山茶客 <span class="pill gr">竞品</span></h4><div class="d2">今日声量 <b>15,300</b> · 好评率 88% · 环比 <b style="color:var(--red)">+64%</b> 🔺<br>触发：联名新品发布（已自动建议题）</div><button class="btn" onclick="showToast('已跳转议题：山茶客联名新品（演示）')">查看议题 →</button></div>
+      <div class="card2"><h4>🥤 浮云饮 <span class="pill gr">竞品</span></h4><div class="d2">今日声量 <b>4,100</b> · 好评率 76% · 环比 ➖<br>触发：食安投诉帖发酵（高危信号 ×2）</div><button class="btn" onclick="showToast('已跳转信号：浮云饮食安投诉（演示）')">查看信号 →</button></div>
+      <div class="card2"><h4>🌿 白露春 <span class="pill gr">竞品</span></h4><div class="d2">今日声量 <b>2,860</b> · 好评率 89% · 环比 ➖<br>动态：无显著事件 · 完成融资 B 轮（资讯级）</div></div>
+    </div>
+
+    <!-- 对比视图 -->
+    <div class="panel">
+      <div class="phead"><h3>📊 阵营声量对比 · 近 7 天</h3><span class="right">数据源：8 平台热榜 + 新闻站采集 · 代码统计</span></div>
+      <div style="margin-top:12px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="width:90px;font-size:12px">🏠 青梧</span><div class="bar" style="flex:1"><i style="width:54%;background:var(--blue)"></i></div><span class="mono">38.2k</span></div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="width:90px;font-size:12px">🍵 山茶客</span><div class="bar" style="flex:1"><i style="width:78%;background:var(--orange)"></i></div><span class="mono">61.5k</span></div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="width:90px;font-size:12px">🥤 浮云饮</span><div class="bar" style="flex:1"><i style="width:26%;background:var(--sub)"></i></div><span class="mono">19.8k</span></div>
+        <div style="display:flex;align-items:center;gap:10px"><span style="width:90px;font-size:12px">🌿 白露春</span><div class="bar" style="flex:1"><i style="width:19%;background:var(--sub)"></i></div><span class="mono">13.4k</span></div>
+      </div>
+      <div class="desc" style="margin-top:12px">口碑负面率：本品 9% · 山茶客 12%（联名翻车争议）· 浮云饮 24%（食安）· 白露春 11% —— 浮云饮负面率为本品 2.7 倍，是「转化窗口」信号</div>
+    </div>
+
+    <!-- 每日竞品简报 -->
+    <div class="panel">
+      <div class="phead"><h3>📰 每日竞品简报 · 09-23</h3><span class="right">09:00 自动生成 · <button class="btn" onclick="showToast('已推送飞书（演示）')">推送飞书</button></span></div>
+      <div class="sig"><span class="lv high">新品</span><div class="body"><div class="bt">山茶客 × 美术馆联名上新，首日抖音话题 2300 万</div><div class="bs">热度环比 +64%，UGC 以打卡晒图为主、口碑正向 82%——注意其定价上探至 25 元档，与本品主力价格带重叠</div></div><span class="when">今天 09:00</span></div>
+      <div class="sig"><span class="lv high">风险</span><div class="body"><div class="bt">浮云饮食品安全投诉发酵中</div><div class="bs">黑猫投诉 48h 新增 137 条 · 2 家媒体报道 · 若上热搜将挤占品类讨论流量，建议避开今日营销投放</div></div><span class="when">今天 09:00</span></div>
+      <div class="sig"><span class="lv mid">动态</span><div class="body"><div class="bt">白露春完成 B 轮融资，宣布下沉市场扩张</div><div class="bs">资讯级（暂无舆论热度），跟踪其扩张城市的本地口碑数据</div></div><span class="when">今天 09:00</span></div>
+      <div class="sig"><span class="lv low">机会</span><div class="body"><div class="bt">本品「轻乳茶」词条在小红书自然热度 +38%</div><div class="bs">UGC 正面 94%，建议放大投放——竞品声量被联名/食安占位，本品有 3-5 天流量窗口</div></div><span class="when">今天 09:00</span></div>
+      <div style="margin-top:10px;display:flex;gap:8px">
+        <button class="btn dark" onclick="openDrawer('report','r5')">📄 生成本周竞品监测报告（漂亮版）</button>
+        <button class="btn" onclick="showToast('已订阅：山茶客动态 → 微信提醒（演示）')">关注「山茶客」动态</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 日报详情（整页阅读视图） ============ -->
+  <section class="page" id="p-dailyview">
+    <div class="topbar">
+      <button class="btn" onclick="showPage('hot')">← 返回日报</button>
+      <button class="btn" onclick="showToast('已下载 Markdown（演示）')">⬇ 下载 Markdown</button>
+      <button class="btn" onclick="showToast('已复制全文（演示）')">⧉ 一键复制</button>
+      <button class="btn" onclick="showToast('分享海报生成中（演示）')">🖼 分享海报</button>
+    </div>
+    <div class="panel" style="margin-top:16px">
+      <div class="aimeta" id="dv-meta"></div>
+      <h1 id="dv-title" style="font-size:22px;margin:6px 0 14px"></h1>
+      <div id="dv-body"></div>
+    </div>
+  </section>
+
+  <!-- ============ 定制中心（系统侧统一入口） ============ -->
+  <section class="page" id="p-custom">
+    <div class="topbar"><h1>定制中心</h1><span class="sub">LLM · Agent · MCP · Skill · 工具 · 守则 · 审批 · 日志 · 配置</span></div>
+    <div class="custombar">
+      <input class="csearch" placeholder="搜索组件…" oninput="filterCustom(this.value)">
+      <span class="chipc on" data-c="all" onclick="pickCustom('all')">全部</span>
+      <span class="chipc" data-c="llm" onclick="pickCustom('llm')">LLM</span>
+      <span class="chipc" data-c="agent" onclick="pickCustom('agent')">Agent</span>
+      <span class="chipc" data-c="mcp" onclick="pickCustom('mcp')">MCP</span>
+      <span class="chipc" data-c="skill" onclick="pickCustom('skill')">Skill</span>
+      <span class="chipc" data-c="tools" onclick="pickCustom('tools')">工具</span>
+      <span class="chipc" data-c="rules" onclick="pickCustom('rules')">守则</span>
+      <span class="chipc" data-c="approve" onclick="pickCustom('approve')">审批</span>
+      <span class="chipc" data-c="logs" onclick="pickCustom('logs')">日志</span>
+      <span class="chipc" data-c="conf" onclick="pickCustom('conf')">配置</span>
+    </div>
+    <div id="custom-body"></div>
+  </section>
+
+  </main>
+</div>
+
+<!-- 右侧抽屉 -->
+<div class="dmask" id="dmask" onclick="closeDrawer()"></div>
+<aside class="drawer" id="drawer">
+  <div class="dhead">
+    <div class="dt"><span id="d-title">会话</span><span class="dx" onclick="closeDrawer()">✕</span></div>
+    <div class="dtabs">
+      <span class="chip on" onclick="openDrawer('net')">🕸 Agent 网络</span>
+      <span class="chip" onclick="showToast('可在此切换：会话 / 网络 / 证据（演示）')">更多视图…</span>
+    </div>
+  </div>
+  <div class="dbody" id="d-body"></div>
+  <div class="dcost" id="d-cost"></div>
+</aside>
+
+<script>
+  const pages = document.querySelectorAll('.page');
+  const links = document.querySelectorAll('#nav a, aside .nav a');
+  links.forEach(a => a.addEventListener('click', () => {
+    pages.forEach(p => p.classList.remove('on'));
+    links.forEach(l => l.classList.remove('on'));
+    a.classList.add('on');
+    document.getElementById('p-' + a.dataset.p).classList.add('on');
+    window.scrollTo(0, 0);
+  }));
+
+  /* ---- 对话页：会话切换 ---- */
+  const convData = {
+    c1: [
+      ['u', 'user', '闲鱼这事帮我看看到底怎么回事，重点看传播路径。', '09-21 18:02'],
+      ['a', 'mainagent', '已建议题「闲鱼涉黄与黑灰产」，拆出 5 个子问题：热度归因 / 传播路径 / 信源核实 / 情绪焦点 / 影响评估。传播路径已派给 Worker#2，先给你已确认的时间线：9/21 14:02 河北经视首发曝光 → 17:40 冲上微博热搜第一 → 22:14 闲鱼回应成立专项组。', '18:02'],
+      ['u', 'user', '官方回应可信吗，别只听一面之词。', '18:20'],
+      ['a', 'advocate', '同意质疑：「平台展示信息未发现淫秽信息」目前仅官方单一信源，且与媒体曝光存在事实张力。已派 verifier 检索网信部门通报与第三方媒体交叉验证，结论暂标「存疑」。', '18:21'],
+      ['a', 'verifier', '交叉验证完成：① 9/23 官方调查结果公告（已归档原文+时间戳）；② 3 家媒体独立报道引流暗语属实；③「公开展示无涉黄」与「私聊引流」并不矛盾——证据链已挂 12 条，可结题。', '19:05']
+    ],
+    c2: [
+      ['u', 'user', '核实员，把官方回应的每个事实点过一遍。', '09-22 09:40'],
+      ['a', 'verifier', '三个事实点核验：①"冻结 98358 个风险账号"——官方公告原文可回溯，已归档；②"打掉 15 个团伙"——仅官方口径，无第三方佐证，标「单源」；③"网传截图来自其他平台"——与 2 家媒体报道相容，但截图本体未获得，标「部分核实」。结论：可用，但报告引用时需带核实状态。', '09:52']
+    ],
+    c3: [
+      ['a', 'sentinel', '值守通知：今日新增暗语变体 4 个（"厂uv""回收ht"），已按 R-20 规则自动入暗语库 v7，并回测近 7 天全量数据——新命中 11 帖，9 帖已并入议题#1 证据库。', '10:14'],
+      ['a', 'sentinel', '提醒：新变体命中帖集中在转转，议题#1 的链路暂未覆盖该平台，建议派生新意图。', '10:15']
+    ]
+  };
+  const convs = document.querySelectorAll('.conv');
+  const emptyEl = document.getElementById('chat-empty');
+  const viewEl = document.getElementById('chat-view');
+  const msgsEl = document.getElementById('chat-msgs');
+  function renderConv(id) {
+    const data = convData[id];
+    const conv = document.querySelector('.conv[data-c="' + id + '"]');
+    const ro = conv && conv.dataset.ro === '1';
+    document.getElementById('chat-input').disabled = ro;
+    document.querySelector('#p-chat .send').disabled = ro;
+    document.getElementById('chat-input').placeholder = ro
+      ? '系统通知会话为只读（值守/预警自动产出），如需追问请新建对话'
+      : '向主 Agent 提问 / 注入 hint / 插队高优意图…';
+    convs.forEach(c => c.classList.toggle('on', c.dataset.c === id));
+    if (!data) { emptyEl.style.display = 'flex'; viewEl.style.display = 'none'; return; }
+    emptyEl.style.display = 'none'; viewEl.style.display = 'flex';
+    msgsEl.innerHTML = data.map(m =>
+      '<div class="msg"><span class="who' + (m[0]==='u' ? ' u' : '') + '">' + m[1] + '</span><div class="bubble">' + m[2] + '</div><span class="when">' + m[3] + '</span></div>'
+    ).join('');
+  }
+  convs.forEach(c => c.addEventListener('click', () => renderConv(c.dataset.c)));
+  document.querySelector('.newchat').addEventListener('click', () => {
+    convs.forEach(c => c.classList.remove('on'));
+    emptyEl.style.display = 'flex'; viewEl.style.display = 'none';
+  });
+  renderConv('c1');
+
+  /* ---- 定制中心：chips 过滤，把对应系统页的内容搬进容器 ---- */
+  const CATS = ['llm','agent','mcp','skill','tools','rules','approve','logs','conf'];
+  let curCat = 'all';
+  const moved = [];   // [node, 原父节点]
+  function parkBack() {
+    moved.forEach(([n, p]) => p.appendChild(n));
+    moved.length = 0;
+  }
+  function renderCustom() {
+    parkBack();
+    const body = document.getElementById('custom-body');
+    const kw = (document.querySelector('.csearch')?.value || '').trim().toLowerCase();
+    body.innerHTML = '';
+    const cats = curCat === 'all' ? CATS : [curCat];
+    cats.forEach(c => {
+      const sec = document.getElementById('p-' + c);
+      if (!sec) return;
+      [...sec.children].forEach(ch => { moved.push([ch, sec]); body.appendChild(ch); });
+      if (sec.children.length) sec.style.display = '';
+    });
+    // 搜索：按关键词隐藏面板（全部层级的简单文本匹配）
+    if (kw) {
+      [...body.children].forEach(ch => {
+        ch.style.display = ch.textContent.toLowerCase().includes(kw) ? '' : 'none';
+      });
+    }
+  }
+  function pickCustom(c) {
+    curCat = c;
+    document.querySelectorAll('.chipc').forEach(x => x.classList.toggle('on', x.dataset.c === c));
+    renderCustom();
+  }
+  function filterCustom(v) { renderCustom(); }
+
+  /* ---- 热点追踪：六大分类 × 10 源（60 源版，清单见复刻方案文档第六节） ---- */
+  const HOTDATA = {
+    news: { n: '新闻', s: [
+      { n: '腾讯新闻', i: ['闲鱼调查结果公布', '网信办通报治理成果'] },
+      { n: '今日头条', i: ['黑灰产治理白皮书发布', '反黑灰产联盟倡议'] },
+      { n: '网易新闻', i: ['暗语引流产业链调查', '平台回应时间线梳理'] },
+      { n: '百度热搜', i: ['闲鱼涉黄事件回顾', '山茶客联名新品'] },
+      { n: '澎湃新闻', i: ['二手平台治理观察', '平台联防机制解读'] },
+      { n: '财新网', i: ['跨平台引流合规分析', '平台责任边界讨论'] },
+      { n: '界面新闻', i: ['二手电商竞争格局', '黑灰产经济损失估算'] },
+      { n: '每日经济新闻', i: ['涉事上市公司回应', '平台治理成本分析'] },
+      { n: '新京报', i: ['暗访记者手记', '举报通道实测'] },
+      { n: '红星新闻', i: ['评论：谁来管站外引流', '用户自保指南'] }
+    ] },
+    ai: { n: 'AI', s: [
+      { n: '机器之心', i: ['多智能体协作框架开源', '长上下文推理新方法'] },
+      { n: '量子位', i: ['Agent 手机发布', '百亿 Token 输出模型'] },
+      { n: '新智元', i: ['海外大模型动态', 'AI 安全治理报告'] },
+      { n: 'AIbase 资讯', i: ['AI 日报 09-23', '端侧模型开源'] },
+      { n: '36氪 AI', i: ['AI 应用概念再爆发', 'AI 短剧商业化观察'] },
+      { n: 'ReadHub', i: ['具身智能新进展', '推理成本下降趋势'] },
+      { n: 'HF Papers', i: ['本周热论文 Top5', '多模态表征世界模型'] },
+      { n: 'GitHub Trending', i: ['开源逆向工具走红', 'Agent 控制面板'] },
+      { n: 'arXiv cs.CL', i: ['推理蒸馏新论文', 'RAG 优化综述'] },
+      { n: '硅星人', i: ['AI 创业公司融资盘点', '大厂组织调整观察'] }
+    ] },
+    tech: { n: '科技', s: [
+      { n: 'IT之家', i: ['浏览器安全沙箱攻破事件', '芯片新品发布'] },
+      { n: '少数派', i: ['效率工具合集', '跨平台阅读器推荐'] },
+      { n: '爱范儿', i: ['新品评测', 'AI 硬件趋势'] },
+      { n: '酷安', i: ['数码用户真实评价', '系统更新吐槽'] },
+      { n: 'Solidot', i: ['开源社区争议', '隐私技术进展'] },
+      { n: 'HackerNews', i: ['开源逆向工具走红', 'AI 生态研究'] },
+      { n: 'TechCrunch', i: ['创投周报', '收购案分析'] },
+      { n: 'The Verge', i: ['消费电子评测', '平台政策变化'] },
+      { n: 'ProductHunt', i: ['新产品 Top5', '开发者工具走红'] },
+      { n: '雷峰网', i: ['产业 AI 落地案例', '供应链观察'] }
+    ] },
+    media: { n: '媒体', s: [
+      { n: '微博热搜', i: ['闲鱼调查结果公布', '二手平台联防机制'] },
+      { n: '抖音热点', i: ['专项组回应现场', '发布会直播'] },
+      { n: 'B站热门', i: ['事件时间线解读', '暗访视频'] },
+      { n: '知乎热榜', i: ['如何看待跨平台引流', '治理机制讨论'] },
+      { n: '快手热榜', i: ['二手交易防骗实录', '地方治理行动'] },
+      { n: '贴吧热议', i: ['网友遇到的套路合集', '平台客服体验'] },
+      { n: '小红书热点', i: ['避坑清单走红', '安全交易攻略'] },
+      { n: '豆瓣小组', i: ['网购维权经验帖', '平台比价讨论'] },
+      { n: '虎扑步行街', i: ['直男视角评事件', '交易纠纷吐槽'] },
+      { n: '公众号热点', i: ['深度：引流产业链', '10w+ 避坑指南'] }
+    ] },
+    fin: { n: '财经', s: [
+      { n: '华尔街见闻', i: ['全球宏观避险情绪升温', '资金博弈确定性'] },
+      { n: '财联社', i: ['AI 产业链转向算力竞赛', '避险资产走强'] },
+      { n: '金十数据', i: ['中东冲突推升能源风险', '美联储鹰派表态'] },
+      { n: '东方财富', i: ['板块剧烈回调', '红利风格转向'] },
+      { n: '新浪财经', i: ['宏观定价逻辑重塑', '资本效率争议'] },
+      { n: '第一财经', i: ['政策窗口解读', '行业景气度观察'] },
+      { n: '智通财经', i: ['港股跨境资金流', '中概股动态'] },
+      { n: '格隆汇', i: ['港股科技板块', 'IPO 市场观察'] },
+      { n: '雪球热帖', i: ['散户情绪：该抄底吗', '仓位讨论'] },
+      { n: '中国基金报', i: ['公募调仓动向', '资管新规解读'] }
+    ] },
+    stock: { n: '股讯', s: [
+      { n: '财联社电报', i: ['AI 应用概念四连板', '算力基建资本开支上调'] },
+      { n: '同花顺快讯', i: ['龙虎榜资金流向', '涨停板复盘'] },
+      { n: '选股通', i: ['题材池异动', '主力资金净流入'] },
+      { n: '老虎财经', i: ['美股 AI 板块夜报', '中概股行情'] },
+      { n: '科创板日报', i: ['硬科技 IPO 动态', '半导体设备订单'] },
+      { n: '淘股吧', i: ['游资题材发酵帖', '明日计划分享'] },
+      { n: '东财龙虎榜', i: ['个股资金流数据榜', '机构席位动向'] },
+      { n: '雪球 A 股', i: ['热帖：板块轮动判断', '大 V 观点争议'] },
+      { n: 'BlockBeats', i: ['加密市场快讯', '稳定币政策动向'] },
+      { n: 'ChainCatcher', i: ['Web3 监管动态', '链上数据周报'] }
+    ] }
+  };
+  /* 源 → 榜单页 URL（溯源直达） */
+  const HSRC = {
+    '腾讯新闻':'https://news.qq.com/','今日头条':'https://www.toutiao.com/','网易新闻':'https://news.163.com/','百度热搜':'https://top.baidu.com/board','澎湃新闻':'https://www.thepaper.cn/',
+    '财新网':'https://www.caixin.com/','界面新闻':'https://www.jiemian.com/','每日经济新闻':'https://www.nbd.com.cn/','新京报':'https://www.bjnews.com.cn/','红星新闻':'https://www.cdsb.com/',
+    '机器之心':'https://www.jiqizhixin.com/','量子位':'https://www.qbitai.com/','新智元':'https://weixin.sogou.com/','AIbase 资讯':'https://www.aibase.com/','36氪 AI':'https://36kr.com/information/AI/','ReadHub':'https://readhub.cn/','HF Papers':'https://huggingface.co/papers','GitHub Trending':'https://github.com/trending','arXiv cs.CL':'https://arxiv.org/list/cs.CL/recent','硅星人':'https://www.pingwest.com/',
+    'IT之家':'https://www.ithome.com/','少数派':'https://sspai.com/','爱范儿':'https://www.ifanr.com/','酷安':'https://www.coolapk.com/','Solidot':'https://www.solidot.org/','HackerNews':'https://news.ycombinator.com/','TechCrunch':'https://techcrunch.com/','The Verge':'https://www.theverge.com/','ProductHunt':'https://www.producthunt.com/','雷峰网':'https://www.leiphone.com/',
+    '微博热搜':'https://s.weibo.com/top/summary','抖音热点':'https://www.douyin.com/hot','B站热门':'https://www.bilibili.com/v/popular/rank/all','知乎热榜':'https://www.zhihu.com/hot','快手热榜':'https://www.kuaishou.com/','贴吧热议':'https://tieba.baidu.com/hottopic/browse','小红书热点':'https://www.xiaohongshu.com/explore','豆瓣小组':'https://www.douban.com/group/','虎扑步行街':'https://bbs.hupu.com/','公众号热点':'https://weixin.sogou.com/',
+    '华尔街见闻':'https://www.wallstreetcn.com/','财联社':'https://www.cls.cn/telegraph','金十数据':'https://www.jin10.com/','东方财富':'https://www.eastmoney.com/','新浪财经':'https://finance.sina.com.cn/','第一财经':'https://www.yicai.com/','智通财经':'https://www.zhitongcaijing.com/','格隆汇':'https://www.gelonghui.com/','雪球热帖':'https://xueqiu.com/','中国基金报':'https://weixin.sogou.com/',
+    '财联社电报':'https://www.cls.cn/telegraph','同花顺快讯':'https://www.10jqka.com.cn/','选股通':'https://xuangu.eastmoney.com/','老虎财经':'https://www.laohu8.com/','科创板日报':'https://www.chinastarmarket.cn/','淘股吧':'https://www.taoguba.com.cn/','东财龙虎榜':'https://data.eastmoney.com/stock/lhb.html','雪球 A 股':'https://xueqiu.com/','BlockBeats':'https://www.theblockbeats.info/','ChainCatcher':'https://www.chaincatcher.com/'
+  };
+  /* 分类通用条目池：源特定条目不足 5 条时补足（原型演示用） */
+  const GPOOL = {
+    news: ['治理专项通报全文发布', '平台联防联盟再添成员', '用户避坑内容持续走红', '评论：治理长效机制何在'],
+    ai: ['Agent 评测基准更新', '开源多模态模型发布', '推理成本持续下降', '行业峰会看点前瞻'],
+    tech: ['新品首发实测', '开发者工具更新', '开源项目周榜', '硬件供应链动态'],
+    media: ['热搜话题迁移观察', '评论区情绪抽样', '短视频现场片段传播', '深读内容承接讨论'],
+    fin: ['避险资产收益率变化', '板块轮动日内观察', '汇率与利率联动', '资金面周度点评'],
+    stock: ['题材池异动监控', '北向资金动向', '两融余额变化', '龙虎榜机构席位']
+  };
+  /* 分类热度基数（演示用：每源热度 = 基数 × 榜位衰减 × 标题扰动） */
+  const CATBASE = { news: 420, ai: 1300, tech: 900, media: 26000, fin: 1800, stock: 700 };
+  const CATGRAD = {
+    news: 'linear-gradient(135deg,#0f766e,#059669)', ai: 'linear-gradient(135deg,#5b21b6,#7c5cf0)',
+    tech: 'linear-gradient(135deg,#1e3a8a,#2563eb)', media: 'linear-gradient(135deg,#be185d,#ec4899)',
+    fin: 'linear-gradient(135deg,#065f46,#10b981)', stock: 'linear-gradient(135deg,#9f1239,#e5484d)'
+  };
+  function fmtHeat(x) {
+    if (x >= 1e6) return (x / 1e6).toFixed(2) + 'M';
+    if (x >= 1e4) return (x / 1e3).toFixed(1) + 'K';
+    return String(Math.round(x));
+  }
+  function itemHeat(base, i, t) {
+    let s = 0; for (let k = 0; k < t.length; k++) s += t.charCodeAt(k);
+    return base * (5 - i) / 5 * (0.75 + (s % 50) / 100);
+  }
+  function rankSpan(i) {
+    const c = i === 0 ? 'r1' : i === 1 ? 'r2' : i === 2 ? 'r3' : 'rN';
+    return '<span class="rank ' + c + '" style="width:18px;height:18px;font-size:11px;margin-right:2px;flex-shrink:0">' + (i + 1) + '</span>';
+  }
+  function renderHot(cat) {
+    const body = document.getElementById('hot-boards');
+    const title = document.getElementById('hot-title');
+    document.querySelectorAll('.chipc[data-h]').forEach(x => x.classList.toggle('on', x.dataset.h === cat));
+    const cats = cat === 'all' ? Object.keys(HOTDATA) : [cat];
+    title.textContent = cat === 'all'
+      ? '🔥 全部热榜 · 6 分类 60 源'
+      : '🔥 ' + HOTDATA[cat].n + '热榜聚合 · ' + HOTDATA[cat].s.length + ' 源';
+    let html = '';
+    cats.forEach(c => {
+      const d = HOTDATA[c];
+      // 每个分类一个整行块：标题 + 该分类自己的卡片网格（避免标题占格）
+      html += '<div style="grid-column:1/-1">' +
+        (cat === 'all' ? '<div style="font-size:13px;font-weight:700;color:var(--sub);margin:4px 0 8px">── ' + d.n + ' · ' + d.s.length + ' 源 ──</div>' : '') +
+        '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px">';
+      d.s.forEach(src => {
+        const u = HSRC[src.n] || '#';
+        const items = src.i.concat(GPOOL[c]).slice(0, 5);
+        const base = CATBASE[c];
+        html += '<div class="hcard">' +
+          '<div class="hhead"><div class="hico" style="background:' + (src.g || CATGRAD[c]) + '">' + (src.e || src.n[0]) + '</div><span class="hname">' + src.n + '</span>' +
+          '<div class="hicons"><span class="rx" title="收藏" onclick="showToast(\'已收藏 ' + src.n + '（演示）\')">☆</span>' +
+          '<span class="rx" title="订阅本源 RSS" onclick="showToast(\'' + src.n + ' RSS 已复制（演示）\')">📡</span>' +
+          '<a class="rx" href="' + u + '" target="_blank" title="打开源站">↗</a>' +
+          '<span class="hrefresh">⟳ 刚刚</span></div></div>' +
+          '<div class="hlist">';
+        items.forEach((t, i) => {
+          html += '<div class="hitem">' + rankSpan(i) +
+            '<div class="ht"><a href="' + u + '" target="_blank" title="点击溯源到源站榜单">' + t + '</a></div>' +
+            '<span class="heat">🔥' + fmtHeat(itemHeat(base, i, t)) + '</span></div>';
+        });
+        html += '</div></div>';
+      });
+      html += '</div></div>';
+    });
+    body.innerHTML = html;
+  }
+  function pickHotCat(c) { renderHot(c); }
+  function switchHotView(v) {
+    document.getElementById('hot-view').style.display = v === 'hot' ? '' : 'none';
+    document.getElementById('daily-view').style.display = v === 'daily' ? '' : 'none';
+    document.getElementById('vw-hot').classList.toggle('on', v === 'hot');
+    document.getElementById('vw-daily').classList.toggle('on', v === 'daily');
+    window.scrollTo(0, 0);
+  }
+  renderHot('all');
+
+  /* ---- 日报整页阅读视图 ---- */
+  function showPage(id) {
+    pages.forEach(p => p.classList.remove('on'));
+    links.forEach(l => l.classList.remove('on'));
+    document.getElementById('p-' + id).classList.add('on');
+    window.scrollTo(0, 0);
+  }
+  const DAILY = {
+    d23: { date: '2026-09-23', cat: '综合', tags: ['治理窗口', '跨平台引流', '品类流量', '政策期', '营销时机'], tok: '512,048', gen: '2026-09-24 06:30', reads: '1,284',
+      title: '闲鱼事件回落治理升温，二手品类流量窗口开启，黑灰产治理进入政策期',
+      body: [
+        ['今日总览', [
+          '当前舆情场处于"事件降温、议题升维"的共振点。9/23 闲鱼公布调查结果后，事件端热度回落 44%，但讨论并未消散，而是从"平台有没有问题"转向"跨平台引流谁来管"——议题生命周期进入深水区。数据端，全天新增 1.4 万条，微博占 62%，快照对比 🔺3 🔻5 ➖9，"只看不评"的避险式围观特征明显。',
+          '政策与治理端信号明确：网信部门"清朗"专项通报点名二手平台跨平台引流问题，行业被要求建立"前置识别—即时处置"联防机制；黑灰产治理从个案打击转向产业链讨论，威胁猎人等研究报告被大V引用后带动解读潮，治理议题正式接管事件议程。',
+          '竞争与机会端，浮云饮食安投诉挤占品类讨论流量，监测品牌方获得 3-5 天营销窗口；本品「轻乳茶」词条在小红书自然热度 +38%，UGC 正面 94%。数据洞察层由代码统计生成，趋势研判经质疑 Agent 审查，事实与观点分层呈现。']],
+        ['重点事件', [
+          ['1. 官方调查结果公布：公开展示未发现违规，实为跨平台引流',
+           '9/23 闲鱼公布调查结果：公开展示信息未发现淫秽信息，网传聊天截图来自其他平台，系跨平台引流；已向公安机关报案，并倡议建立反黑灰产联盟。事件自 9/21 河北经视曝光、17:40 登顶微博热搜第一，历时 3 天。',
+           '官方回应直接对冲了"平台纵容"的指控，但"站外引流"的定性又把问题抛给整个行业——单平台危机升级为行业议题，天然具备传播势能；而"切割式回应"能否被舆论接受，取决于后续联防动作是否跟上。',
+           '可能影响什么：口径经 verifier 交叉核实成立，平台短期口碑企稳；但负面声量仍占 71%，公众议程已转向平台责任边界，后续监管动作才是真正的定调变量。',
+           '一句话结论：闲鱼用"切割+联盟倡议"完成了危机上半场，下半场的考场是全行业联防，而非单一平台自证。'],
+          ['2. 暗语引流向转转/孔夫子扩散，37 帖命中同一话术模板',
+           '暗语库 v7 检出「处宝可约」类变体 37 帖分布于转转、孔夫子等平台，话术模板与闲鱼事件曝光样本高度一致，互动数据呈爬坡态势。',
+           '该发现坐实了"黑灰产矩阵化迁移"的判断——暗语不变、平台轮换，单平台治理打不掉产业链；公众对"治了白治"的担忧成为新情绪点，也是媒体追问的靶心。',
+           '可能影响什么：引流承接平台将承接舆情外溢与监管压力；跨平台情报共享从倡议变成刚需，先建立联防机制的一方在下一轮舆情中占主动。',
+           '一句话结论：黑灰产的流动性就是治理的考题，跨平台联防从口号变成基础设施的时间表，决定事件第二波峰值何时出现。'],
+          ['3. 网信部门通报密集，二手平台治理进入政策窗口',
+           '"清朗"专项通报点名二手平台跨平台引流问题，要求建立"前置识别—即时处置"机制，多家平台被要求限期自查，治理要求首次成体系出现。',
+           '政策节奏与舆情峰值同频，说明议题已进入监管议程；"成体系的治理要求"意味着合规成本将内化为平台运营的固定项，而不再是一次性公关支出。',
+           '可能影响什么：平台侧合规投入将上升，"前置识别"能力（暗语库、实时拦截）成为采购需求；舆情服务的价值点从"监测"前移到"处置辅助"。',
+           '一句话结论：政策窗口一旦打开就不会关上，治理能力将取代流量数据成为二手平台的长期竞争力指标。'],
+          ['4. 竞品借势营销：3 个竞品账号发布"更安全"对比内容',
+           '3 个竞品账号借事件发布"更安全"对比营销，累计互动 4.2 万，内容高度模板化，发布时间集中在事件热度峰值后 12 小时内。',
+           '借势内容集中在"安全感"心智，属于低风险高收益打法；但踩着事件做营销的边界一旦失手（被指吃人血馒头），反噬烈度远超常规翻车案例。',
+           '可能影响什么：品类信任修复期内，安全心智营销的有效性上升；但监管对"蹭事件营销"的态度是潜在约束，跟进者需要内容安全评估。',
+           '一句话结论：借势窗口存在但狭窄，"有用"比"聪明"安全——实用向内容是唯一低风险的蹭法。'],
+          ['5. 涉未成年人指控暂存疑：仅媒体单源，与官方口径不一致',
+           '媒体报道提及未成年人线索，官方通报未确认；verifier 交叉核实后标注「存疑：仅媒体单源，官方口径未含」，暂不入正式结论，进入 48h 验证窗口。',
+           '未成年人议题的烈度上限极高——若坐实将触发从严惩处条款并引发第二轮爆发，若证伪则首发媒体公信力受损，两个方向都是大新闻。',
+           '可能影响什么：该条目的最终状态（坐实/证伪/悬置）将直接改变事件定性与各方回应策略；对监测方而言，验证窗口内的每一条新增信源都要即时核对。',
+           '一句话结论：存疑不是和稀泥，是把"不确定性"诚实地亮出来——这正是研判产品与拍脑袋结论的区别。'],
+          ['6. 治理议题接棒：黑灰产产业链讨论成为新流量中心',
+           '威胁猎人报告、公安部通报等被大V引用，讨论从事件转向产业链与治理机制，解读类内容阅读收益显著走高，报告类内容出现结构性空缺。',
+           '议题升维意味着长尾流量仍在：事件 Report 淡出后产业分析接棒，内容供给侧出现空缺，而相关方（平台/监管/研究机构/安全厂商）都有持续发声空间。',
+           '可能影响什么：事件报告与专题复盘在此窗口内传播效率最高；对内容方，抓住"从事件到产业"的升维瞬间决定长尾期收益。',
+           '一句话结论：热点会退烧，议题不会——升维瞬间是长尾期内容的全部秘密。']]],
+        ['趋势观察', [
+          ['治理能力成为平台竞争力指标', '从通报措辞看，"前置识别—即时处置"将从倡议变为硬要求，暗语库、实时拦截等治理基建的采购需求正在形成。'],
+          ['跨平台联防的时间表博弈', '闲鱼倡议联盟、监管点名要求、黑灰产加速迁移三方赛跑——联防落地速度决定第二波舆情峰值的高度。'],
+          ['品类流量挤压与释放的窗口规律', '负面事件挤占品类流量后，通常 3-5 天内释放给幸存品牌；该窗口在本次事件中再次得到验证，可作为营销响应的默认参数。'],
+          ['"存疑标注"的信任价值显性化', '涉未成年人条目的存疑处理获得正面反馈，公开承认不确定性正在成为研判产品的信任资产。']]],
+        ['值得继续关注', [
+          '监管侧：是否出台二手平台跨平台联防的成文规范（观察网信办官网与行业媒体，窗口 1-3 个月）',
+          '暗语演化：暗语库变体周更数据，重点监控转转/孔夫子新增命中量（每周环比）',
+          '涉未成年人线索：官方通报或权威媒体是否出现第二信源（48h 验证窗口）',
+          '品类流量：本品自然热度是否延续，竞品借势内容是否出现翻车案例（日度监测）',
+          '联盟进展：反黑灰产联盟的实际成员与情报共享机制落地情况（闲鱼倡议后的第一个动作）']],
+        ['编辑总结', [
+          '纵观今日，闲鱼事件完成了从"平台危机"到"行业议题"的升维：官方回应稳住了口碑基本盘，但把战场让给了更大的命题——跨平台黑灰产治理。数据端的回落（-44%）与议程端的升温（治理话题）同时发生，说明事件进入"舆论降温、实质博弈"的深水区。',
+          '深层看，本日最有价值的信号有两个：一是治理能力被监管明确定义为平台能力（"前置识别—即时处置"），这将重塑二手平台的成本结构；二是"存疑标注"作为产品机制被验证——对不确定性的诚实，本身就是研判产品的差异化。预判未来一周，联防机制的第一个实质动作、暗语变体的第二波扩散、品类流量窗口的关闭时点，是三个决定叙事走向的变量。']]
+      ] },
+
+    d22: { date: '2026-09-22', cat: '综合', tags: ['回落期', '竞品借势', '治理议题'], tok: '488,048', gen: '2026-09-23 06:30', reads: '967',
+      title: '热度回落四成，讨论转向黑灰产治理',
+      body: [
+        ['今日总览', ['热度环比 -44%，事件进入回落期；讨论重心转向治理议题，竞品借势营销信号出现。暗语检测发现跨平台变体，已升级为高危信号。']],
+        ['重点事件', [
+          ['1. 竞品借势营销出现', '3 个竞品账号发布「更安全」对比内容，累计互动 4.2 万，建议监测而非跟进。'],
+          ['2. 暗语跨平台扩散（高危）', '37 帖命中同一话术模板，检出器：暗语库 v7 + LLM 复核。']]]
+      ] },
+    d21: { date: '2026-09-21', cat: '综合', tags: ['爆发', '平台回应'], tok: '608,048', gen: '2026-09-22 06:30', reads: '2,041',
+      title: '闲鱼涉黄登顶热搜：爆发日全景',
+      body: [
+        ['今日总览', ['单日信息量 6.8 万条，占全周 54%。14:02 河北经视首发 → 17:40 登顶微博热搜第一 → 22:14 闲鱼回应成立专项组。情感分布：负面 71%。']],
+        ['重点事件', [
+          ['1. 媒体曝光引爆舆论', '河北经视暗访曝光「上门」「处宝可约」暗语引流，2 小时内冲上热搜。'],
+          ['2. 平台快速回应', '闲鱼宣布成立专项小组，披露 2026 年累计冻结色情引流风险账号 98,358 个。']]]
+      ] },
+    d19: { date: '2026-09-19', cat: '综合', tags: ['酝酿期'], tok: '96,048', gen: '2026-09-20 06:30', reads: '312',
+      title: '舆情酝酿期：零星爆料与早期讨论',
+      body: [
+        ['今日总览', ['日均不足万条，以零星讨论和早期爆料为主，舆情处于低位预热阶段。建议保持值守观察，暂不升级研判。']]
+      ] },
+    dn: { date: '2026-09-23', cat: '新闻', tags: ['监管窗口', '平台自查'], tok: '52,110', gen: '2026-09-24 06:30', reads: '486',
+      title: '监管窗口下的二手平台：通报、联防与平台自查',
+      body: [
+        ['今日总览', ['新闻面三条主线：网信部门通报点名二手平台、跨平台联防机制进入行业讨论、涉案平台密集自查。财新与澎湃均以调查篇幅跟进， MBA智库榜出现治理机制词条。']],
+        ['重点事件', [
+          ['1. 通报细节与平台自查清单', '通报要求建立"前置识别—即时处置"机制，多家平台已上线自查页。'],
+          ['2. 调查报道带动长尾讨论', '财新调查稿带动社交平台二次解读，新闻类内容互动率高于昨日 18%。']]]
+      ] },
+    da: { date: '2026-09-23', cat: 'AI', tags: ['端侧模型', '长文本'], tok: '47,220', gen: '2026-09-24 06:30', reads: '355',
+      title: 'Agent 手机与百亿输出：端侧与长文本双线突破',
+      body: [
+        ['今日总览', ['AI 资讯两条主线：端侧多模态模型开源潮（3GB 内存可跑），与百万 Token 输出的长周期任务模型竞争。AIBase 日报与机器之心均以头版处理。']],
+        ['重点事件', [
+          ['1. 端侧模型开源潮', '3GB 内存 13+ token/s 解码，端侧部署门槛大幅下降。'],
+          ['2. 长文本军备竞赛', '百万输出成为旗舰标配，研报生成/代码长任务受益最直接。']]]
+      ] },
+    dt: { date: '2026-09-23', cat: '科技', tags: ['安全事件', '开发者工具'], tok: '41,005', gen: '2026-09-24 06:30', reads: '298',
+      title: '安全沙箱攻破事件带动安全板块关注',
+      body: [
+        ['今日总览', ['浏览器沙箱攻破悬赏事件持续发酵，开源逆向工具走红引发开发者社区热议；GitHub Trending 前十中安全类占三席。']]
+      ] },
+    dm: { date: '2026-09-23', cat: '媒体', tags: ['社媒结构', '声量分布'], tok: '39,480', gen: '2026-09-24 06:30', reads: '264',
+      title: '社媒讨论结构速览：微博主导，知乎承接深读',
+      body: [
+        ['今日总览', ['声量分布：微博 62% / 头条 21% / 知乎 9%。微博承担爆发与扩散，知乎承接深读与复盘，短视频以现场片段传播为主。平台间内容迁移路径清晰，可用于投放与回应的渠道排序。']]
+      ] },
+    df: { date: '2026-09-23', cat: '财经', tags: ['宏观避险', '能源风险'], tok: '44,310', gen: '2026-09-24 06:30', reads: '301',
+      title: '避险情绪升温：能源风险与科技板块回调',
+      body: [
+        ['今日总览', ['地缘冲突推升能源价格与航运风险，叠加美联储鹰派表态，全球避险情绪走强；科技板块剧烈回调，资金转向确定性资产。']]
+      ] },
+    ds: { date: '2026-09-23', cat: '股讯', tags: ['AI 应用', '游资题材'], tok: '45,090', gen: '2026-09-24 06:30', reads: '388',
+      title: 'AI 应用概念四连板：游资题材复盘',
+      body: [
+        ['今日总览', ['AI 应用概念四连板带动题材热度，龙虎榜机构席位与游资同现；淘股吧题材发酵帖与东财资金流数据交叉验证，题材持续性取决于业绩兑付节奏。']]
+      ] }
+  };
+  /* ---- 日报归档（缩略图卡片流） ---- */
+  const ARCH = [
+    { id: 'd23', cat: '综合', icon: '📰', grad: 'linear-gradient(135deg,#2c3a5e,#3b6ef5)', title: '闲鱼事件回落治理升温，二手品类流量窗口开启', src: '6 分类汇总', desc: '三线共振：事件端回落但议题升维，治理政策窗口打开，食安挤占品类流量——营销窗口 3-5 天。', date: '2026-09-23', tags: ['治理窗口', '品类流量', '政策期'], tok: '512k' },
+    { id: 'd22', cat: '综合', icon: '📰', grad: 'linear-gradient(135deg,#2c3a5e,#3b6ef5)', title: '热度回落四成，讨论转向黑灰产治理', src: '6 分类汇总', desc: '回落期研判：热度 -44%，治理议题接棒；竞品借势营销信号出现。', date: '2026-09-22', tags: ['回落期', '竞品借势'], tok: '488k' },
+    { id: 'd21', cat: '综合', icon: '📰', grad: 'linear-gradient(135deg,#2c3a5e,#3b6ef5)', title: '闲鱼涉黄登顶热搜：爆发日全景', src: '6 分类汇总', desc: '单日 6.8 万条占全周 54%，平台回应时间线完整还原。', date: '2026-09-21', tags: ['爆发', '平台回应'], tok: '608k' },
+    { id: 'd19', cat: '综合', icon: '📰', grad: 'linear-gradient(135deg,#2c3a5e,#3b6ef5)', title: '舆情酝酿期：零星爆料与早期讨论', src: '6 分类汇总', desc: '日均不足万条，早期爆料为主，值守观察。', date: '2026-09-19', tags: ['酝酿期'], tok: '96k' },
+    { id: 'dn', cat: '新闻', icon: '🗞', grad: 'linear-gradient(135deg,#0f766e,#059669)', title: '监管窗口下的二手平台：通报、联防与平台自查', src: '澎湃 · 财新 · 新京报', desc: '通报要求"前置识别—即时处置"，多家平台已上线自查页；调查报道带动长尾讨论。', date: '2026-09-23', tags: ['监管窗口', '平台自查'], tok: '52k' },
+    { id: 'da', cat: 'AI', icon: '🤖', grad: 'linear-gradient(135deg,#5b21b6,#7c5cf0)', title: 'Agent 手机与百亿输出：端侧与长文本双线突破', src: '机器之心 · AIBase · 36氪', desc: '端侧多模态开源潮（3GB 可跑）与百万 Token 输出军备竞赛并行。', date: '2026-09-23', tags: ['端侧模型', '长文本'], tok: '47k' },
+    { id: 'dt', cat: '科技', icon: '🛰', grad: 'linear-gradient(135deg,#1e3a8a,#2563eb)', title: '安全沙箱攻破事件带动安全板块关注', src: 'IT之家 · HackerNews', desc: '悬赏攻破沙箱事件发酵，GitHub Trending 前十安全类占三席。', date: '2026-09-23', tags: ['安全事件', '开发者工具'], tok: '41k' },
+    { id: 'dm', cat: '媒体', icon: '💬', grad: 'linear-gradient(135deg,#be185d,#ec4899)', title: '社媒讨论结构速览：微博主导，知乎承接深读', src: '微博 · 知乎 · B站 · 抖音', desc: '声量分布：微博 62% / 头条 21% / 知乎 9%，平台间内容迁移路径清晰。', date: '2026-09-23', tags: ['社媒结构', '声量分布'], tok: '39k' },
+    { id: 'df', cat: '财经', icon: '📈', grad: 'linear-gradient(135deg,#065f46,#10b981)', title: '避险情绪升温：能源风险与科技板块回调', src: '华尔街见闻 · 金十', desc: '地缘冲突推升能源价格，叠加鹰派表态，资金转向确定性资产。', date: '2026-09-23', tags: ['宏观避险', '能源风险'], tok: '44k' },
+    { id: 'ds', cat: '股讯', icon: '💹', grad: 'linear-gradient(135deg,#9f1239,#e5484d)', title: 'AI 应用概念四连板：游资题材复盘', src: '财联社 · 淘股吧 · 东财龙虎榜', desc: '机构与游资同现龙虎榜，题材持续性取决于业绩兑付节奏。', date: '2026-09-23', tags: ['AI 应用', '游资题材'], tok: '45k' }
+  ];
+  function renderArchive(cat) {
+    document.querySelectorAll('.archbar .chipc').forEach(x => x.classList.toggle('on', x.dataset.a === cat));
+    const list = document.getElementById('arch-list');
+    list.innerHTML = ARCH.filter(a => cat === 'all' || a.cat === cat).map(a =>
+      '<div class="card2 daily-card" style="margin-bottom:10px" onclick="openDaily(\'' + a.id + '\')">' +
+      '<div class="thumb" style="background:' + a.grad + '">' + a.icon + '</div>' +
+      '<div style="flex:1;min-width:0"><h4 style="display:flex;align-items:center;gap:8px">' + a.title + ' <span class="mono" style="margin-left:auto;font-size:11px">' + a.date + '</span></h4>' +
+      '<div class="d2">' + a.desc + '</div>' +
+      '<div style="font-size:11.5px;color:var(--sub)">来源：' + a.src + ' · <span class="pill gr">' + a.cat + '</span>' +
+      a.tags.map(t => '<span class="pill gr">' + t + '</span>').join('') +
+      ' · ⚡ GLM-4.7 · ' + a.tok + ' tok</div></div></div>'
+    ).join('');
+  }
+  function pickArch(c) { renderArchive(c); }
+  renderArchive('all');
+  function openDaily(id) {
+    const d = DAILY[id];    document.getElementById('dv-meta').innerHTML =
+      '<span>' + d.date + '</span><span>分类: ' + d.cat + '</span>' +
+      d.tags.map(t => '<span>' + t + '</span>').join('') +
+      '<span>AI平台: 智谱 BigModel</span><span>AI模型: GLM-4.7</span><span>提供人: YUQING 值守管线</span>' +
+      '<span>Token消耗: ' + d.tok + '</span><span>生成时间: ' + d.gen + '</span><span>阅读量: ' + d.reads + ' 次</span>';
+    document.getElementById('dv-title').textContent = d.title;
+    document.getElementById('dv-body').innerHTML = d.body.map(sec => {
+      let inner = '';
+      if (sec[0] === '重点事件') {
+        inner = sec[1].map(ev => {
+          if (ev.length >= 5) {
+            return '<div style="margin-bottom:16px"><b style="font-size:14px">' + ev[0] + '</b>' +
+              '<p style="font-size:13px;color:#3a4258;line-height:1.8;margin:6px 0">' + ev[1] + '</p>' +
+              '<p style="font-size:12.5px;color:var(--sub);line-height:1.7;margin:4px 0"><b style="color:var(--blue)">为什么热：</b>' + ev[2] + '</p>' +
+              '<p style="font-size:12.5px;color:var(--sub);line-height:1.7;margin:4px 0"><b style="color:var(--blue)">可能影响什么：</b>' + ev[3] + '</p>' +
+              '<p style="font-size:12.5px;line-height:1.7;margin:6px 0 0;background:#fff9ef;border-left:3px solid var(--orange);padding:6px 10px;border-radius:0 8px 8px 0"><b>一句话结论：</b>' + ev[4] + '</p></div>';
+          }
+          return '<div style="margin-bottom:12px"><b style="font-size:13.5px">' + ev[0] + '</b><p style="font-size:13px;color:var(--sub);margin-top:4px;line-height:1.75">' + ev[1] + '</p></div>';
+        }).join('');
+      } else if (sec[0] === '值得继续关注') {
+        inner = sec[1].map(t => '<div style="font-size:13px;color:#3a4258;line-height:1.7;margin-bottom:6px">☑ ' + t + '</div>').join('');
+      } else if (sec[1].length && Array.isArray(sec[1][0])) {
+        inner = sec[1].map(tp => '<div style="margin-bottom:10px"><b style="font-size:13.5px">' + tp[0] + '</b><p style="font-size:13px;color:var(--sub);margin-top:3px;line-height:1.75">' + tp[1] + '</p></div>').join('');
+      } else {
+        inner = sec[1].map(p => '<p style="font-size:13.5px;color:#3a4258;line-height:1.8;margin-bottom:10px">' + p + '</p>').join('');
+      }
+      return '<h3 style="font-size:15px;margin:18px 0 10px;padding-left:8px;border-left:4px solid var(--blue)">' + sec[0] + '</h3>' + inner;
+    }).join('');
+    showPage('dailyview');
+  }
+
+  /* ---- AI 模式：全部展开/折叠 ---- */
+  function toggleAllAcc() {
+    const list = document.getElementById('acc-list');
+    const openAny = [...list.querySelectorAll('.acc')].some(a => !a.classList.contains('open'));
+    list.querySelectorAll('.acc').forEach(a => a.classList.toggle('open', openAny));
+    document.getElementById('acc-all').textContent = openAny ? '全部折叠' : '全部展开';
+  }
+
+  /* ---- LLM 页：供应商切换（演示数据） ---- */
+  const PROV = {
+    bigmodel: { n: '🔮 智谱 BigModel', url: 'https://open.bigmodel.cn/api/paas/v4', m: ['GLM-4.7（默认 · 200K · 判读/规划）', 'GLM-4.7-Flash（预览 · 快速打标）'] },
+    deepseek: { n: '🐋 DeepSeek', url: 'https://api.deepseek.com/v1', m: ['DeepSeek-V4（批量打标 · 64K）'] },
+    ollama: { n: '🖥 Ollama（本地）', url: 'http://127.0.0.1:11434/v1', m: ['qwen3:14b（离线兜底 · 32K）'] }
+  };
+  function pickProv(id) {
+    document.querySelectorAll('#p-llm .conv').forEach(x => x.classList.toggle('on', x.dataset.p === id));
+    const p = PROV[id];
+    document.getElementById('prov-name').textContent = p.n;
+    const rows = document.getElementById('model-rows');
+    rows.innerHTML = p.m.map(m =>
+      '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px"><input class="tsel" style="flex:1" value="' + m + '" data-k="模型"><button class="btn" onclick="showToast(\'已设为默认模型（演示）\')">⭐</button><button class="btn" onclick="showToast(\'编辑模型（演示）\')">✎</button><button class="btn" onclick="showToast(\'已删除模型（演示）\')">🗑</button></div>'
+    ).join('');
+  }
+
+  /* ---- agent-teams 组队演示 ---- */
+  function startTeam() {
+    document.getElementById('team-draft').style.display = 'none';
+    document.getElementById('team-board').style.display = '';
+    showToast('团队已启动 · 右上角「🧩 团队」可随时打开成员看板');
+    setTimeout(() => showToast('mailbox：传播路径 Worker → 暗语检测 Worker 已同步变体情报'), 2600);
+  }
+
+  /* ---- 右侧抽屉：成员会话 / Agent 网络 / 团队看板 ---- */
+  let teamMoved = [];
+  function parkTeamBack() {
+    teamMoved.forEach(([n, p]) => p.appendChild(n));
+    teamMoved.length = 0;
+  }
+  const memberMsgs = {
+    'worker1': { title: '⚙ 传播路径 Worker · 会话', msgs: [
+      ['a', 'worker1', '时间线还原完成：9/21 14:02 河北经视首发 → 17:40 微博热搜第一 → 22:14 闲鱼回应。证据 12 条已挂链。', '4h 前'],
+      ['u', 'user', '首发媒体的转发链路再挖一层，看看是谁带的第一波节奏。', '3h 前'],
+      ['a', 'worker1', '收到，已把"首发转发链路"追加为当前任务，预计再挂 6-8 条证据。', '3h 前']
+    ], cost: '本成员：623.4k · ¥0.19 · 24 步 · 缓存 88% · 工具结果占 85%' },
+    'worker2': { title: '⚙ 暗语检测 Worker · 会话', msgs: [
+      ['a', 'worker2', '收到 mailbox：传播路径 Worker 同步「厂uv」变体 ×3，待热榜快照到位后并单排查。', '12m 前']
+    ], cost: '本成员：88.2k · ¥0.02 · 3 步 · 等待前置' },
+    'verifier': { title: '🔍 核实员 · 会话', msgs: [
+      ['a', 'verifier', '门禁位待命中。取证完成后自动开始：回溯原文链接 + 抓取时间 + 口径核对。', '—']
+    ], cost: '门禁未到，暂无消耗' },
+    'advocate': { title: '⚔ 质疑者 · 会话', msgs: [
+      ['a', 'advocate', '门禁位待命中。已预载质疑清单：单一信源 / 口径混淆 / 时间线断裂 / 幸存者偏差。', '—']
+    ], cost: '门禁未到，暂无消耗' }
+  };
+  const NET_HTML = `
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="card2"><h4>🧭 主 Agent · 议题#1</h4><div class="d2">741.0k · ¥0.81 · 18 步 · 上下文 8% · <b style="color:var(--green)">缓存 91%</b></div></div>
+      <div class="card2" style="border-color:var(--blue)"><h4>⚙ 传播路径 Worker <span class="pill">当前</span></h4><div class="d2">623.4k · ¥0.19 · 24 步 · 14.7%<br><span style="font-size:11px">系统提示 2.3k · 工具定义 6.6k · 用户消息 557 · 注入 217 · <b>工具结果 103.2k(85%)</b></span></div></div>
+      <div class="card2"><h4>🔍 核实员</h4><div class="d2">312.5k · ¥0.13 · 9 步 · 8.2% · 缓存 86%</div></div>
+      <div class="card2"><h4>⚙ 暗语检测 Worker</h4><div class="d2">88.2k · ¥0.02 · 3 步 · 等待前置</div></div>
+    </div>
+    <div class="desc" style="margin-top:10px">计费口径：与 dsh tokenMeter 同源分层聚合（≈4 字符 1 token），¥ 为供应商上游用量。<br>观测要点：工具结果占上下文 85% → 建议对该 Worker 开 compaction-tool-result-pruner。</div>`;
+  function openDrawer(kind, member) {
+    const d = document.getElementById('drawer'), m = document.getElementById('dmask');
+    const title = document.getElementById('d-title');
+    const body = document.getElementById('d-body');
+    const cost = document.getElementById('d-cost');
+    if (kind === 'chat') {
+      const mm = memberMsgs[member];
+      title.textContent = mm.title;
+      body.innerHTML = mm.msgs.map(x =>
+        '<div class="msg"><span class="who' + (x[0]==='u'?' u':'') + '">' + x[1] + '</span><div class="bubble">' + x[2] + '</div><span class="when">' + x[3] + '</span></div>'
+      ).join('') + '<div class="chat-in"><input placeholder="向该成员发消息（如已干完可续聊）"><button class="btn dark" onclick="showToast(\'已发送（演示）\')">➤</button></div>';
+      cost.innerHTML = mm.cost;
+    } else if (kind === 'report') {
+      const R = {
+        r1: { t: '📄 事件报告 · 从闲鱼涉黄舆情看网络黑灰产', c: `
+          <div class="card2"><h4>PART 01 · 舆情数据洞察 <span class="pill g">代码统计出图</span></h4><div class="d2">信息总量 126,249 条 · 负面 71.34% · 微博占 70.82% · 9/21 单日爆发（6.8万，占全周 54%）</div></div>
+          <div class="card2"><h4>PART 02 · 黑灰产专题深研 <span class="pill g">引用挂链</span></h4><div class="d2">八大方向/产业链/治理对策 · 引用：《中国金融黑灰产治理研究报告(2025)》2800亿、威胁猎人 800 万从业、公安部公开通报</div></div>
+          <div class="card2"><h4>证据链 <span class="pill o">47 条全挂链</span></h4><div class="d2">每条结论可回溯原文链接+抓取时间；涉未成年人指控标「存疑：仅媒体单源」</div></div>`,
+          f: '待人工审核数据口径 · reporter 起草 · 9-23' },
+        r2: { t: '📅 舆情日报 · 09-23', c: `
+          <div class="card2"><h4>三线共振摘要</h4><div class="d2">①闲鱼事件回落但治理议题升温 ②黑灰产治理进入政策窗口 ③二手品类流量被食安事件挤占——有 3-5 天营销窗口</div></div>
+          <div class="card2"><h4>今日总览</h4><div class="d2">新增 1.4 万条 · 微博 62%/头条 21%/知乎 9% · 快照对比 🔺3 🔻5 ➖9 · 概念标签：治理窗口 / 品类流量 / 食安挤占</div></div>
+          <div class="card2"><h4>信号</h4><div class="d2">🔴 暗语跨平台扩散（高危）· 🟠 竞品借势营销（中危）</div></div>
+          <div class="card2"><h4>生成署名 <span class="pill g">透明度声明</span></h4><div class="d2">AI 平台：智谱 BigModel · 模型：GLM-4.7 · Token 消耗：512,048（缓存命中 64%）· 数据源：8 平台热榜 + 新闻站采集 · 数据洞察层=代码统计，叙述层=LLM 生成后经人工审核</div></div>`,
+          f: '值守自动生成 · 06:30 · 已推送飞书 + RSS' },
+        r3: { t: '📅 舆情日报 · 09-22', c: `
+          <div class="card2"><h4>回落期研判</h4><div class="d2">热度 -44%，讨论转向治理议题 · 新增「竞品借势」信号 · 治理专题续监控</div></div>`,
+          f: '值守自动生成 · 已推送飞书' },
+        r4: { t: '📊 专题复盘 · 315 消费维权季前瞻', c: `
+          <div class="card2"><h4>已结题议题成稿</h4><div class="d2">近三年 315 期间舆情案例复盘 · 行业风险预测 · 影响力指数对比</div></div>`,
+          f: '议题 t-315-2026 · 已发布' },
+        r5: { t: '🏷 品牌监测周报 · 现制茶饮赛道（青梧 vs 3 竞品）', c: `
+          <div class="card2"><h4>PART 01 · 竞争格局 <span class="pill g">代码统计出图</span></h4><div class="d2">7 天声量：山茶客 61.5k（+64%，联名驱动）> 本品 38.2k（+12%）> 浮云饮 19.8k > 白露春 13.4k<br>口碑负面率：本品 9%（最优）· 浮云饮 24%（食安发酵中）</div></div>
+          <div class="card2"><h4>PART 02 · 竞品动态时间线</h4><div class="d2">① 山茶客联名上新（话题 2300 万，价格带上探 25 元）② 浮云饮食安投诉 137 条 ③ 白露春 B 轮融资、下沉扩张 · 每条挂信源+抓取时间</div></div>
+          <div class="card2"><h4>PART 03 · 决策建议 <span class="pill o">研判 Agent 产出 · 供参考</span></h4><div class="d2">① 浮云饮食安挤占品类流量，本品有 3-5 天营销窗口（轻乳茶 UGC +38% 可放大）② 山茶客价格带上探，本品定价可保持差异化 ③ 白露春下沉扩张需跟踪区域口碑</div></div>
+          <div class="card2"><h4>报告说明</h4><div class="d2">数据洞察层=代码统计（不可被 LLM 修改）；建议层=研判 Agent 产出+质疑 Agent 过审；每条引用可回溯。LLM 只叙述，不产生事实。</div></div>`,
+          f: '品牌监测 · 每周一生成 · 本份可导出 HTML/PDF' }
+      };
+      const r = R[member];
+      title.textContent = r.t;
+      body.innerHTML = r.c;
+      cost.innerHTML = r.f;
+    } else if (kind === 'gen') {
+      title.textContent = '✨ 生成今日日报';
+      let rows = '';
+      Object.keys(HOTDATA).forEach(c => {
+        const d = HOTDATA[c];
+        rows += '<div class="card2" style="margin-bottom:8px"><h4>' + d.n + ' · ' + d.s.length + ' 源</h4><div class="d2" style="margin:4px 0 0">' +
+          d.s.slice(0, 4).map(s => '<span class="pill gr">' + s.n + '</span>' + s.i[0]).join('<br>') + '</div></div>';
+      });
+      body.innerHTML =
+        '<div class="desc">第一步 · 今日热点数据速览（6 分类 60 源 · 每小时快照去重后 182 条）</div>' + rows +
+        '<div class="desc" style="margin-top:10px">第二步 · 系统将聚类去重出 Top30，交给 GLM-4.7 生成日报（预计消耗 ~50k token）</div>' +
+        '<button class="btn dark" id="gen-btn" onclick="runGenReport()">🤖 开始分析生成日报</button>';
+      cost.innerHTML = '本次生成预计消耗 ~50k token（聚类由代码完成，LLM 只负责成文）';
+    } else if (kind === 'board') {
+      title.textContent = '🧩 团队 · 闲鱼涉黄与黑灰产';
+      parkTeamBack();
+      const body2 = document.getElementById('team-src');
+      [...body2.children].forEach(ch => { teamMoved.push([ch, body2]); body.appendChild(ch); });
+      cost.innerHTML = document.getElementById('team-board').style.display !== 'none'
+        ? '团队运行中 · 累计 1.7M · ¥1.13 · 点成员「续聊」切换到会话视图'
+        : '草案待确认 · 确认后才会计费';
+    } else {
+      title.textContent = '🕸 Agent 网络 · 实时上下文与成本';
+      body.innerHTML = NET_HTML;
+      cost.innerHTML = '3 个 Agent · 累计 1.7M · ¥1.13 · 数据源：dsh tokenMeter 分层聚合';
+    }
+    d.classList.add('open'); m.classList.add('open');
+  }
+  function closeDrawer() {
+    document.getElementById('drawer').classList.remove('open');
+    document.getElementById('dmask').classList.remove('open');
+    parkTeamBack();
+  }
+  /* ---- 生成今日日报：数据 → 分析中 → 出报 ---- */
+  function runGenReport() {
+    const body = document.getElementById('d-body');
+    const btn = document.getElementById('gen-btn');
+    if (btn) btn.disabled = true;
+    body.innerHTML += '<div class="card2" id="gen-status" style="margin-top:12px;border-color:var(--blue)"><h4>🤖 AI 分析中…</h4><div class="d2" id="gen-log" style="font-family:Consolas,monospace;font-size:12px">▸ 聚类去重：182 条 → Top30<br></div></div>';
+    const log = document.getElementById('gen-log');
+    const steps = [
+      '▸ 跨源去重：合并同文 23 组（muse 类多源共振 ×3）<br>',
+      '▸ 主线归纳：识别 3 条主线（治理窗口 / 品类流量 / 政策期）<br>',
+      '▸ 证据核对：Top30 全部回溯到快照表，0 条幻觉<br>',
+      '▸ GLM-4.7 成文中…'
+    ];
+    steps.forEach((s, i) => setTimeout(() => { log.innerHTML += s; }, 600 * (i + 1)));
+    setTimeout(() => {
+      document.getElementById('gen-status').innerHTML =
+        '<h4>✅ 日报已生成 <span class="pill g">草稿</span></h4><div class="d2">' +
+        '<b>《闲鱼事件回落治理升温，二手品类流量窗口开启，黑灰产治理进入政策期》</b><br>' +
+        '三线共振：①事件端回落但议题升维 ②治理政策窗口打开 ③食安挤占品类流量，营销窗口 3-5 天</div>' +
+        '<div style="margin-top:6px"><span class="pill gr">治理窗口</span><span class="pill gr">品类流量</span><span class="pill gr">政策期</span></div>' +
+        '<div class="d2" style="margin-top:8px;font-size:11px">⚡ GLM-4.7 · Token 51,842 · 耗时 38s · 草稿待审核</div>' +
+        '<button class="btn dark" style="margin-top:8px" onclick="closeDrawer();openDaily(\'d23\')">打开完整日报 →</button>';
+      showToast('日报草稿已生成，待人工审核后发布');
+    }, 3200);
+  }
+
+  /* ---- 页面切换时，定制中心按当前 chip 重渲染 ---- */
+  const origLinks = links;   // links 为 NodeList，切换逻辑已在上方绑定
+  links.forEach(a => {
+    if (a.dataset.p !== 'custom') return;
+    a.addEventListener('click', () => setTimeout(renderCustom, 0));
+  });
+
+  /* ---- 可编辑配置：统一"已保存"提示 ---- */
+  const toast = document.createElement('div');
+  toast.id = 'toast';
+  document.body.appendChild(toast);
+  let toastTimer;
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 1800);
+  }
+  document.querySelectorAll('.tsel').forEach(el =>
+    el.addEventListener('change', () => showToast('已保存：' + el.dataset.k + ' → ' + el.value)));
+  document.querySelectorAll('input.tog').forEach(el =>
+    el.addEventListener('change', () => showToast('已保存：' + el.dataset.k + (el.checked ? ' 已启用' : ' 已停用'))));
+
+  /* ---- 审批页：批准/拒绝 ---- */
+  function resolveAp(id, ok) {
+    const cell = document.getElementById('ap-' + id);
+    cell.innerHTML = ok
+      ? '<span class="st done">✓ 已批准 · worker 已获 crawl.deep 授权</span>'
+      : '<span class="st err">✕ 已拒绝 · worker 收到替代方案提示（改走 Tavily 公开检索）</span>';
+    const badge = document.querySelector('aside .badge');
+    if (badge) badge.remove();
+    showToast(ok ? '已批准，已通知 worker#1 继续' : '已拒绝，已通知 worker#1 改走公开检索');
+  }
+</script>
+</body>
+</html>
