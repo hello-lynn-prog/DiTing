@@ -1,0 +1,7 @@
+# dsh Web overlay：把 yuqing-tools 插件插入加载列表
+# 用法（在 deepseek-harness 仓根目录）：
+#   pnpm dsh web --patch ./scratch-plugin/cordis.yml
+# 注意：name 必须是绝对路径，指向 harness 仓内的 scratch 副本
+- insert:
+    - id: yuqing
+      name: 'D:/Study/deepseek_harness/deepseek-harness/scratch-plugin/src/yuqing-tools.ts'

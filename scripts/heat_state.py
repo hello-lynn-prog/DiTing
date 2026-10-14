@@ -107,8 +107,8 @@ def evaluate(records, dates=None):
     return rows
 
 
-# ---------------- demo：三个议题（对应讲解里的例子） ----------------
-if __name__ == "__main__":
+# ---------------- CLI：demo / JSON 服务模式 ----------------
+def _demo() -> None:
     D, P = "09-22", "09-23"     # 昨日 / 今日
     R = [                        # (日期, 平台, 议题, 榜位, 榜长)
         # A 闲鱼涉黄：昨天中位，今天前排 → 升温（未到3倍）
@@ -130,3 +130,22 @@ if __name__ == "__main__":
         if state == "-":
             icon = "(基期)"
         print(f"{topic:<4} {d:<6} {score:>7.1f}  {icon}")
+
+
+def _run_json() -> None:
+    """服务模式（供 dsh 插件 spawn 调用）：
+    stdin : {"records": [[日期, 平台, 议题, 榜位, 榜长], ...]}
+    stdout: {"rows": [[议题, 日期, 热度分, 状态], ...]}"""
+    import json
+    import sys
+    payload = json.load(sys.stdin)
+    records = [tuple(r) for r in payload["records"]]
+    json.dump({"rows": evaluate(records)}, sys.stdout, ensure_ascii=False)
+
+
+if __name__ == "__main__":
+    import sys
+    if "--json" in sys.argv:
+        _run_json()
+    else:
+        _demo()
