@@ -1,0 +1,58 @@
+{
+  "date": "2026-10-18",
+  "source": "D:\\工作学习\\9github项目\\agent-code-atlas-output\\repos\\BettaFish",
+  "source_type": "local_snapshot_without_git",
+  "templates": [
+    {
+      "file": "企业品牌声誉分析报告模板.md",
+      "sha256": "830dfd564f653238658b46054ef029e064304e4b8c70b58d3c155d5d86f5d2dc"
+    },
+    {
+      "file": "市场竞争格局舆情分析报告模板.md",
+      "sha256": "73850476cba08ba387efbb6bbc7bfa2464b20d0e8cbf9871b97396d54ba8737c"
+    },
+    {
+      "file": "日常或定期舆情监测报告模板.md",
+      "sha256": "608082057f1b5c6a3c5f1cb99930c0c25b5f67b6817fa81b8ae3ed4eb21a2836"
+    },
+    {
+      "file": "特定政策或行业动态舆情分析报告模板.md",
+      "sha256": "6f65d3ea6e67e25c11e3f813a0cf3352ab24df7f4b91cb8b27f3c560acbd52d1"
+    },
+    {
+      "file": "社会公共热点事件分析报告模板.md",
+      "sha256": "7e3ebc2f5c4c92f6a0ee8f536fde248891190ec773b0f443019caa327a4c4c40"
+    },
+    {
+      "file": "突发事件与危机公关舆情报告模板.md",
+      "sha256": "64512f3c91e660f3123b8fe127f193a3b0f8556812bcfff5c83192a3cae17a35"
+    }
+  ],
+  "baseline_files": [
+    {
+      "file": "ReportEngine/agent.py",
+      "sha256": "cadfdea86b88d8ff7e522bf5a3b1f804b97fa00549cfe2ebcdda6424f8e34773"
+    },
+    {
+      "file": "InsightEngine/agent.py",
+      "sha256": "1e624375de9a3a7ddb81fc5fd56cbdf762307cc3393fb3eeee095cbfb8bb34bc"
+    },
+    {
+      "file": "MediaEngine/agent.py",
+      "sha256": "7d42382581fe6bc14de6edde25158a8653830a951ec2f004201451802c3a2d72"
+    },
+    {
+      "file": "QueryEngine/agent.py",
+      "sha256": "ea0386b565e94b47f73f380b9c4867002a4ef553e71505d4be47704feae11476"
+    },
+    {
+      "file": "LICENSE",
+      "sha256": "44686cfd8b09cd489ecbd2f740e0a31d7006584b90e7446dd29661f06f0213ec"
+    }
+  ],
+  "dsh": {
+    "path": "D:/Study/deepseek_harness/deepseek-harness",
+    "commit": "9fcc9f4d6ea6e02ab92ed12bfb2ca627b3363035",
+    "execution_certified": false
+  }
+}
