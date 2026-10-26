@@ -7,6 +7,11 @@ test('public IPv4 is allowed while mapped, loopback, private and credential-bear
   for (const url of ['http://127.0.0.1/', 'http://2130706433/', 'http://10.0.0.1/', 'http://192.168.1.1/', 'http://[::1]/', 'http://[::ffff:127.0.0.1]/', 'https://user:password@8.8.8.8/']) await assert.rejects(assertPublicUrl(url));
 });
 
+test('hotlist proxy accepts only an uncredentialed local HTTP endpoint',async()=>{
+ for(const proxyUrl of ['http://proxy.example.com:7897','https://127.0.0.1:7897','http://user:pass@127.0.0.1:7897'])
+  await assert.rejects(fetchText('https://8.8.8.8/',undefined,true,{proxyUrl}),/本机 HTTP 代理/);
+});
+
 test('redirects never forward credentials or POST bodies to another origin, and endpoint restrictions run before connection',async()=>{
   const received:any[]=[];
   const target=createServer(async(req,res)=>{let body='';for await(const chunk of req)body+=chunk;received.push({headers:req.headers,method:req.method,body,url:req.url});res.setHeader('Content-Type','application/json');res.end('{"ok":true}');});

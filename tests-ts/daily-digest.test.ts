@@ -1,5 +1,13 @@
 import {test} from 'node:test';import assert from 'node:assert/strict';import {mkdtempSync} from 'node:fs';import {join} from 'node:path';import {tmpdir} from 'node:os';
-import {Database,uid,encode,type Row} from '../packages/domain/db.js';import {ROOT} from '../apps/server/settings.js';import {DailyDigest,dailyDigestHtml,extractArticleText,extractFirecrawlExcerpt} from '../packages/domain/daily-digest.js';import {Configuration} from '../packages/domain/configuration.js';
+import {Database,uid,encode,type Row} from '../packages/domain/db.js';import {ROOT} from '../apps/server/settings.js';import {DailyDigest,dailyDigestHtml,extractArticleText,extractFirecrawlExcerpt,rankTopicPages} from '../packages/domain/daily-digest.js';import {Configuration} from '../packages/domain/configuration.js';
+test('daily event cites the directly relevant story before an omnibus brief',()=>{
+ const topic={title:'中兴通讯三季度净利同比增长'};
+ const pages=[
+  {url:'https://example.org/roundup',excerpt:'SpaceX 发射安排。DeepSeek 模型动态。多家公司发布三季度业绩，中兴通讯也出现在快讯列表。'},
+  {url:'https://example.org/zte',excerpt:'中兴通讯三季度净利同比增长。中兴通讯披露三季度财务数据，并说明主要业务的收入情况。'}
+ ];
+ assert.equal(rankTopicPages(topic,pages)[0].url,'https://example.org/zte');
+});
 test('Firecrawl news-flash excerpt excludes recommendation chrome before material scoring',()=>{
  const short='财联社10月22日电，针对设备适配问题，相关平台表示将尽快推出更新。';
  const raw=`# 快讯 ${short} 财联社声明：文章内容仅供参考，不构成投资建议。 1289436 阅读 热门解锁 ${'其它文章推荐与广告。'.repeat(120)}`;
@@ -89,6 +97,18 @@ test('a search landing URL uses the remaining page slot for a dated article foun
  }finally{db.close();}
 });
 
+test('a same-day diary preview freezes and displays its latest archived snapshot time',()=>{
+ const dir=mkdtempSync(join(tmpdir(),'diting-digest-partial-')),db=new Database(join(dir,'state.sqlite3'),ROOT),date='2026-10-26';
+ try{
+  const observed='2026-10-26T09:15:00+08:00',snapshot=uid('snap');
+  db.run('INSERT INTO hotlist_snapshots VALUES(?,?,?,?,?,?,?,?)',snapshot,'dailyhot','baidu','succeeded',1,null,observed,observed);
+  db.run('INSERT INTO hotlist_items VALUES(?,?,?,?,?,?,?,?,?,?)',uid('item'),snapshot,'topic','某公司公布产品安排','https://example.org/news',1,null,null,encode({}),'partial-day-topic');
+  const digest=new DailyDigest(db,()=>new Date('2026-10-26T11:00:00+08:00')).generate(date,{notify:false});
+  assert.equal(digest.through,observed);
+  assert.match(dailyDigestHtml({...digest,preview:true}),/截至 09:15[^<]*未覆盖未采集时段/);
+ }finally{db.close();}
+});
+
 test('daily title-search fallback fetches a public article and binds the material to its event',async()=>{
  const dir=mkdtempSync(join(tmpdir(),'diting-digest-search-fallback-')),db=new Database(join(dir,'state.sqlite3'),ROOT),config=new Configuration(db,dir);
  try{
@@ -99,10 +119,11 @@ test('daily title-search fallback fetches a public article and binds the materia
   const article='监管部门公布风险处置方案，明确后续安排并回应公众关切。该报道梳理了相关措施的背景、执行环节与适用范围，也介绍了不同参与方的公开表态。'.repeat(20);
   const fetcher=(async(url:any,init:any)=>{
    if(String(url).includes('bocha.example'))return new Response(JSON.stringify({code:200,data:{webPages:{value:[{title:'明星演唱会现场引发热议',url:'https://news.example.org/irrelevant',summary:'不相关结果'},{title:'监管部门公布风险处置方案',url:'https://news.example.org/2025/01/07/old',summary:'旧年同名报道'},{title:'风险处置方案公布：快讯',url:'https://news.example.org/article/124',summary:'短讯'},{title:'风险处置方案公布：实施细节与各方回应',url:'https://news.example.org/article/123',summary:'公开报道'}]}}}),{status:200,headers:{'content-type':'application/json'}});
-   const body=JSON.parse(init.body),table=JSON.parse(body.messages[1].content),source=table.events[0],fake={headline:source.title,lead:'榜单出现一条公共事务线索，以下依据公开报道归纳。',overview:['底表记录该议题的榜内位置，公开报道提供了处置安排的背景和执行信息。'],events:[{topic_id:source.topic_id,title:source.title,fact_summary:'报道介绍了处置措施的背景、执行环节与适用范围。',why_hot:'推测：报道梳理处置措施背景与适用范围，可能有助于读者理解方案内容。',impact_path:'推测：报道提及后续安排，相关议题可能随执行进展继续受到关注。',conclusion:'后续可关注公开安排的落实进展。'}],trends:[],watch:[],editor_summary:['本期围绕榜单议题与公开报道整理。']};return new Response(JSON.stringify({choices:[{message:{content:JSON.stringify(fake)}}],usage:{prompt_tokens:800,completion_tokens:160,prompt_tokens_details:{cached_tokens:0}}}),{status:200,headers:{'content-type':'application/json'}});
+   const body=JSON.parse(init.body),table=JSON.parse(body.messages[1].content),source=table.events[0],fake={headline:source.title,lead:'榜单出现一条公共事务线索，以下依据公开报道归纳。',overview:[{fact:'公开报道提供了处置安排的背景和执行信息。',judgment:'执行环节值得继续核对。'}],events:[{topic_id:source.topic_id,title:source.title,fact_summary:'报道介绍了处置措施的背景、执行环节与适用范围。',why_hot:'推测：报道梳理处置措施背景与适用范围，可能有助于读者理解方案内容。',impact_path:'推测：报道提及后续安排，相关议题可能随执行进展继续受到关注。',conclusion:'后续可关注公开安排的落实进展。'}],trends:[],watch:[],editor_summary:['本期围绕榜单议题与公开报道整理。']};return new Response(JSON.stringify({choices:[{message:{content:JSON.stringify(fake)}}],usage:{prompt_tokens:800,completion_tokens:160,prompt_tokens_details:{cached_tokens:0}}}),{status:200,headers:{'content-type':'application/json'}});
   }) as typeof fetch;
   const pageRequests:string[]=[],pageFetcher=(async(url:string)=>{pageRequests.push(url);return{url,text:url.endsWith('/direct')||url.includes('kuaishou.com')?'<main><p>火山引擎正在进行安全检测，为保障您的访问安全，系统正在检测当前网络环境，请耐心等待。</p></main>':`<article><p>${url.endsWith('/124')?'风险处置方案已公布，后续安排待详细报道。'.repeat(5):article}</p></article>`,headers:{'content-type':'text/html; charset=utf-8'}};}) as any;
   const digest=await new DailyDigest(db,()=>new Date('2026-10-22T12:00:00+08:00'),config,fetcher,pageFetcher).generateNarrated('2026-10-22',{notify:false});
+  assert.equal((digest as any).narrative.overview[0],'公开报道提供了处置安排的背景和执行信息。 执行环节值得继续核对。');
   const result=digest as any;assert.equal(result.narrative_status,'model',String(result.narrative_fallback_reason));assert.equal(result.material_run.search_fallback_success,1);assert.equal(result.material_run.with_usable_body,1);assert.equal(result.material_run.search_attempts,1);assert.equal(result.material_run.search_provider_cost,'unknown');assert.equal(result.narrative.events[0].source_url,'https://news.example.org/article/123');assert.equal(result.narrative.events[0].fact_basis,'source_page_excerpt');assert.equal(result.narrative.events[0].why_hot,'');assert.equal(result.narrative.events[0].impact_path,'');assert.ok((result.model.quality_adjustments as Row[]).some(x=>x.field==='why_hot'&&/锚点/.test(x.reason)));assert.equal(result.source_pages[0].method,'title_search_then_native_article');assert.ok(result.source_pages[0].excerpt.length>=800);assert.equal(pageRequests.some(url=>url.endsWith('irrelevant')||url.endsWith('/old')),false);assert.deepEqual(pageRequests,['https://news.example.org/article/direct','https://news.kuaishou.com/video/123','https://news.example.org/article/124','https://news.example.org/article/123']);assert.equal(db.rows("SELECT * FROM acquisitions WHERE source='daily-digest:2026-10-22' AND operation='source_search'").length,1);
  }finally{db.close();}
 });

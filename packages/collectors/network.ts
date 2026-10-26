@@ -1,7 +1,7 @@
 import { lookup } from 'node:dns/promises';
 import { isIP, BlockList } from 'node:net';
-import { request as httpRequest, type IncomingMessage } from 'node:http';
-import { request as httpsRequest } from 'node:https';
+import { Agent as HttpAgent, request as httpRequest, type IncomingMessage } from 'node:http';
+import { Agent as HttpsAgent, request as httpsRequest } from 'node:https';
 
 const blocked = new BlockList();
 for (const [address, prefix] of [['0.0.0.0',8],['10.0.0.0',8],['100.64.0.0',10],['127.0.0.0',8],['169.254.0.0',16],['172.16.0.0',12],['192.0.0.0',24],['192.0.2.0',24],['192.168.0.0',16],['198.18.0.0',15],['198.51.100.0',24],['203.0.113.0',24],['224.0.0.0',4],['240.0.0.0',4]] as const) blocked.addSubnet(address, prefix, 'ipv4');
@@ -16,8 +16,15 @@ export async function assertPublicUrl(value: string) {
   if (!addresses.length || addresses.some(a => (a.family === 6 && /^::ffff:/i.test(a.address)) || blocked.check(a.address, a.family === 6 ? 'ipv6' : 'ipv4'))) throw new Error('原文抓取不访问本机、私有或保留网络');
   return { url, addresses };
 }
-export type TextRequestInit={method?:'GET'|'POST';headers?:Record<string,string>;body?:string;allowedOrigins?:readonly string[];beforeRequest?:(url:string)=>void};
+export type TextRequestInit={method?:'GET'|'POST';headers?:Record<string,string>;body?:string;allowedOrigins?:readonly string[];beforeRequest?:(url:string)=>void;proxyUrl?:string};
 export async function fetchText(url: string, signal?: AbortSignal, publicOnly = true, init?: TextRequestInit): Promise<{ text: string; url: string; headers?: IncomingMessage['headers'] }> {
+  let proxyEnv:Record<string,string>|undefined;
+  if(init?.proxyUrl){
+    const proxy=new URL(init.proxyUrl);
+    if(proxy.protocol!=='http:'||!['127.0.0.1','localhost','[::1]'].includes(proxy.hostname)||!proxy.port||proxy.username||proxy.password||proxy.pathname!=='/'||proxy.search||proxy.hash)
+      throw new Error('榜单备用代理仅允许无凭据的本机 HTTP 代理');
+    proxyEnv={HTTP_PROXY:proxy.href,HTTPS_PROXY:proxy.href};
+  }
   let current = url;
   let method=init?.method||'GET',body=init?.body,headers={...(init?.headers||{})};
   for (let i = 0; i < 5; i++) {
@@ -27,8 +34,10 @@ export async function fetchText(url: string, signal?: AbortSignal, publicOnly = 
     const timeout = AbortSignal.any([AbortSignal.timeout(20000), ...(signal ? [signal] : [])]);
     // Pin the validated DNS answer to the connection, closing a rebinding gap between validation and fetch.
     const response = await new Promise<IncomingMessage>((resolve, reject) => {
-      const request = (current.startsWith('https:') ? httpsRequest : httpRequest)(current, { signal: timeout, method,
+      const secure=current.startsWith('https:');
+      const request = (secure ? httpsRequest : httpRequest)(current, { signal: timeout, method,
         headers: { 'User-Agent': 'Mozilla/5.0 DiTing/0.3', Accept: 'application/json,text/html;q=0.9', ...headers },
+        ...(proxyEnv?{agent:secure?new HttpsAgent({proxyEnv}):new HttpAgent({proxyEnv})}:{}),
         ...(resolved ? { lookup: ((_hostname: string, options: any, callback: any) => { const chosen = resolved.addresses.find(a => a.family === 4) || resolved.addresses[0]; options?.all ? callback(null, [chosen]) : callback(null, chosen.address, chosen.family); }) as any } : {}) }, resolve);
       request.on('error', reject); request.end(body);
     });

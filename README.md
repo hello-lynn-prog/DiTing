@@ -26,7 +26,9 @@ npm start
 
 打开 `http://127.0.0.1:8090`。也可以运行 `scripts/start.ps1`。服务仅监听 loopback，定位为个人单机工具。
 
-更新代码后，在项目目录的 PowerShell 终端运行 `& .\scripts\restart.ps1 -Background` 可构建并后台重启，终端关闭后服务继续运行；默认不带参数仍以前台运行，按 Ctrl+C 停止。脚本先核对 8090 的 Node 进程与本项目 `server.lock` 一致，并检查没有正在运行的研究任务，再构建；构建失败时保留原服务，端口由其他程序占用时拒绝停止。仅检查当前进程可加 `-CheckOnly`。本机执行策略若禁止自动化工具结束现有进程，仍需由你在自己的终端运行这条命令；不要删除服务锁或强行启动第二套后端。后台运行不等于开机自启或通过 24 小时稳定性验收。
+更新代码后，在项目目录的 PowerShell 终端运行 `& .\scripts\restart.ps1 -Background` 可构建并后台重启，终端关闭后服务继续运行；默认不带参数仍以前台运行，按 Ctrl+C 停止。脚本先核对 8090 的 Node 进程与本项目 `server.lock` 一致，并检查没有正在运行的研究任务，再构建；构建失败时保留原服务，端口由其他程序占用时拒绝停止。仅检查当前进程可加 `-CheckOnly`。本机执行策略若禁止自动化工具结束现有进程，仍需由你在自己的终端运行这条命令；不要删除服务锁或强行启动第二套后端。后台运行不等于开机自启或通过 24 小时稳定性验收。Windows PowerShell 5.1 和 PowerShell 7 均可运行该脚本。
+
+榜单来源默认直连原始平台。若本机已有 HTTP 代理，可在 `.env` 中设置 `DITING_HOTLIST_PROXY_URL=http://127.0.0.1:端口`；仅 GitHub、V2EX、纽约时报、Linux.do、Hostloc 五个固定来源在直连超时时尝试该本机代理。代理不可用或返回验证页仍记失败；其他来源和研究模型请求不受此设置影响。
 
 数据默认保存在 `data/`。数据库、密钥、备份和导出属于业务数据；运行日志与诊断探针分别放在 `data/logs/`、`data/diagnostics/probes/`，不应当作研究数据打包。服务启动会将旧版根目录日志归档至 `data/logs/legacy/`，探针归档至 `data/diagnostics/probes/`；新的服务日志使用 JSONL，每日最多 3 个 5 MiB 文件，自动清理超过 14 天的滚动日志。`legacy/` 内历史日志不自动删除。首次升级旧数据库时程序先在 `data/backups/pre-ts-*` 建 SQLite 备份，再应用兼容迁移。备份时停止服务，至少保留 `diting.sqlite3` 与解密密钥 `master.key`；需要长期保留报告时另备份 `exports/`，通常无需打包 `logs/` 和诊断探针。不要提交 `.env`、`data/` 或真实凭据。
 

@@ -29,8 +29,8 @@ test('ported parsers retain platform metrics and do not synthesize heat values',
   assert.equal(acfun[0].title, 'AcFun fixture title'); assert.equal(acfun[0].heat, 17);
   const guokrFixture = source('guokr').parse(JSON.stringify({ data: [{ id: 2, title: 'Guokr fixture article' }] }));
   assert.equal(guokrFixture[0].title, 'Guokr fixture article'); assert.equal(guokrFixture[0].heat, null);
-  const earthquake = source('earthquake').parse('const newdata = [{"NEW_DID":"e1","LOCATION_C":"测试地点","M":"3.2"}];');
-  assert.equal(earthquake[0].title, '测试地点发生3.2级地震'); assert.equal(earthquake[0].heat, null);
+  const earthquake = source('earthquake').parse('[{"id":"e1","location":"测试地点","magnitude":3.2,"time":"2026-10-26 12:00:00"}]');
+  assert.equal(earthquake[0].title, '测试地点发生3.2级地震'); assert.equal(earthquake[0].heat, null);assert.equal(source('earthquake').url,'https://www.ceic.ac.cn/data/data.json');
   const day = String(new Date().getDate()).padStart(2, '0'), month = String(new Date().getMonth()+1).padStart(2, '0');
   const history = source('history').parse(JSON.stringify({ [month]: { [month+day]: [{ title: '历史事件 fixture', link: 'https://example.org/event' }] } }));
   assert.equal(history[0].url, 'https://example.org/event'); assert.equal(history[0].heat, null);
@@ -56,6 +56,21 @@ test('Douyin uses its short-lived CSRF cookie preflight before requesting the li
   assert.equal(await fetchSourceText(source('douyin'), fake), '{"ok":true}');
   assert.equal(calls.length, 2); assert.ok(calls[0].url.includes('/passport/general/login_guiding_strategy/'));
   assert.ok(JSON.stringify(calls[1].init).includes('fixture-token'));
+});
+
+test('fixed public source retries local proxy only after a connection timeout',async()=>{
+ const before=process.env.DITING_HOTLIST_PROXY_URL;
+ process.env.DITING_HOTLIST_PROXY_URL='http://127.0.0.1:7897';
+ try{
+  const calls:any[]=[];
+  const fake=(async(url:string,_signal?:AbortSignal,_publicOnly?:boolean,init?:any)=>{calls.push({url,init});if(!init?.proxyUrl)throw new DOMException('The operation was aborted','AbortError');return{text:'[{"id":1,"title":"V2EX fixture"}]',url};}) as typeof fetchText;
+  assert.match(await fetchSourceText(source('v2ex'),fake),/V2EX fixture/);
+  assert.equal(calls.length,2);
+  assert.equal(calls[1].init.proxyUrl,'http://127.0.0.1:7897');
+  assert.deepEqual(calls[1].init.allowedOrigins,['https://www.v2ex.com']);
+  const denied=(async()=>{throw Error('来源 HTTP 403');}) as typeof fetchText;
+  await assert.rejects(fetchSourceText(source('weibo'),denied),/HTTP 403/);
+ }finally{if(before===undefined)delete process.env.DITING_HOTLIST_PROXY_URL;else process.env.DITING_HOTLIST_PROXY_URL=before;}
 });
 
 test('Hacker News collects ranked stories from its official API without the blocked HTML page', async () => {

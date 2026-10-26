@@ -9,6 +9,22 @@ test('distinct events can share a specific subject without grouping every AI hea
  const events=[{id:'a',title:'小米汽车公布交付计划',category:'科技与产业',sources:['board:a'],source_urls:['https://a.example']},{id:'b',title:'小米汽车回应售后争议',category:'科技与产业',sources:['board:b'],source_urls:['https://b.example']},{id:'c',title:'AI Agent 企业落地',category:'科技与产业',sources:['board:c'],source_urls:[]}];
  const themes=buildDailyThemes(events,[],(a,b)=>a===b);assert.equal(themes.length,2);assert.equal(themes[0].members.length,2);assert.equal(themes[0].source_count,2);
 });
+test('roundup and question boilerplate cannot merge unrelated daily subjects',()=>{
+ assert.equal(relatedDailyTheme('如何看待周星驰新片开分','如何看待 iPhone Duo 订单取消'),false);
+ assert.equal(relatedDailyTheme('21年NBA双杰，坎宁安和杰伦-格林的矛盾','NBA遭遇伤病潮：杰威重伤'),false);
+ assert.equal(relatedDailyTheme('《流浪地球 3》电影全新物料即将发布','武侠电影《霹雳英雄》即将上映'),false);
+ assert.equal(relatedDailyTheme('坦克 500 正式上市：智能驾驶、舒适和安全全面升级','Flutter 紧急发布安全升级版本'),false);
+ assert.equal(relatedDailyTheme('Lula Defeats Bolsonaro for Brazil Presidency','Shanghai aims for thousands of satellites'),false);
+ const events=[
+  {id:'phone',title:'iPhone Duo 开放购买',category:'科技与产业',sources:['board:a'],source_urls:[]},
+  {id:'roundup',title:'iPhone Duo 上市；中兴通讯发布季度利润',category:'科技与产业',sources:['board:b'],source_urls:[]},
+  {id:'zte',title:'中兴通讯发布季度利润增长',category:'科技与产业',sources:['board:c'],source_urls:[]}
+ ];
+ const themes=buildDailyThemes(events,[],(a,b)=>a===b);
+ assert.equal(themes.length,2);
+ assert.deepEqual(themes.find(t=>t.title.includes('iPhone'))?.members.map((m:Row)=>m.id),['phone','roundup']);
+ assert.deepEqual(themes.find(t=>t.title.startsWith('中兴'))?.members.map((m:Row)=>m.id),['zte']);
+});
 
 test('cross-day pairing comes from all prior titles and does not call a repeat progress',()=>{
  const today=[{id:'a',title:'小米汽车公布交付计划',category:'科技与产业',sources:['board:a'],source_urls:[],best_rank:2}];

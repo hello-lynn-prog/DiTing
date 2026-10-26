@@ -32,7 +32,7 @@ function findArrays(value: unknown, depth = 0): Row[][] {
   return Object.values(value).flatMap(v => findArrays(v, depth + 1));
 }
 function parseJson(text: string, id: string): Item[] {
-  if (id === 'earthquake') { const match = text.match(/const newdata = (\[.*?\]);/s); if (!match) throw new Error('地震台页面中没有 newdata 数据'); return (JSON.parse(match[1]) as Row[]).map(row => item(row.NEW_DID, `${row.LOCATION_C}发生${row.M}级地震`, `https://news.ceic.ac.cn/${row.NEW_DID}.html`, null, row)); }
+  if (id === 'earthquake') { const rows=JSON.parse(text); if(!Array.isArray(rows))throw new Error('地震目录未返回事件列表');return (rows as Row[]).filter(row=>typeof row.id==='string'&&typeof row.location==='string'&&typeof row.magnitude==='number'&&Number.isFinite(row.magnitude)&&typeof row.time==='string'&&!Number.isNaN(Date.parse(row.time.replace(' ','T')+'+08:00'))).sort((a,b)=>String(b.time).localeCompare(String(a.time))).slice(0,50).map(row=>item(row.id,`${row.location}发生${row.magnitude}级地震`,'https://www.ceic.ac.cn/',null,row)); }
   if (id === 'history') { const data = JSON.parse(text) as Row, month = String(new Date().getMonth()+1).padStart(2,'0'), day = String(new Date().getDate()).padStart(2,'0'), events = data[month]?.[month+day]; if (!Array.isArray(events)) throw new Error('历史上的今天未返回本日事件'); return events.map((row: Row, i: number) => item(i, String(row.title||'').replace(/<[^>]*>/g,' ').trim(), row.link, null, row)); }
   const parsed = JSON.parse(text) as Row;
   // Keep source-specific field names; the fallback is only for common API shapes, not a fabricated heat score.
@@ -115,7 +115,7 @@ export const sources: Source[] = [
   json('toutiao', '今日头条热榜', 'https://www.toutiao.com/hot-event/hot-board/?origin=toutiao_pc'), json('36kr', '36氪人气榜', 'https://gateway.36kr.com/api/mis/nav/home/nav/rank/hot', 'dailyhot', 'hotlist', '收藏数（平台指标）', { method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' }, body: JSON.stringify({ partner_id: 'wap', param: { siteId: 1, platformId: 2 }, timestamp: Date.now() }) }), json('51cto', '51CTO 推荐榜', 'https://api-media.51cto.com/index/index/recommend', 'dailyhot', 'content_rank', '未提供平台热度'),
   json('weread', '微信读书飙升榜', 'https://weread.qq.com/web/bookListInCategory/rising?rank=1', 'dailyhot', 'content_rank', '榜单排名（非舆情热度）'), json('ngabbs', 'NGA 论坛热帖', 'https://ngabbs.com/nuke.php?__lib=load_topic&__act=load_topic_reply_ladder2&opt=1&all=1', 'dailyhot', 'hotlist', '回复数（平台指标）', { method: 'POST', headers: { Accept: '*/*', Referer: 'https://ngabbs.com/', 'Content-Type': 'application/x-www-form-urlencoded', 'X-User-Agent': 'NGA_skull/7.3.1(iPhone13,2;iOS 17.2.1)' }, body: '__output=14' }), json('v2ex', 'V2EX 主题榜', 'https://www.v2ex.com/api/topics/hot.json', 'dailyhot', 'hotlist', '回复数（平台指标）'),
   json('hellogithub', 'HelloGitHub 热门仓库', 'https://abroad.hellogithub.com/v1/?sort_by=featured&tid=&page=1', 'dailyhot', 'content_rank', '收藏/排序指标（非舆情热度）'), json('weatheralarm', '中央气象台天气预警', 'http://www.nmc.cn/rest/findAlarm?pageNo=1&pageSize=20&signaltype=&signallevel=&province=', 'dailyhot', 'public_notice', '无热度指标'),
-  json('earthquake', '中国地震台速报', 'https://news.ceic.ac.cn/speedsearch.html', 'dailyhot', 'public_notice', '震级（非热度）'), json('history', '历史上的今天', `https://baike.baidu.com/cms/home/eventsOnHistory/${String(new Date().getMonth()+1).padStart(2,'0')}.json`, 'dailyhot', 'reference', '无热度指标'),
+  json('earthquake', '中国地震台速报', 'https://www.ceic.ac.cn/data/data.json', 'dailyhot', 'public_notice', '震级（非热度）'), json('history', '历史上的今天', `https://baike.baidu.com/cms/home/eventsOnHistory/${String(new Date().getMonth()+1).padStart(2,'0')}.json`, 'dailyhot', 'reference', '无热度指标'),
   ...dailyHotExtendedSources(item),
 ];
 
@@ -143,7 +143,15 @@ export async function fetchSourceText(source: Source, fetcher = fetchText): Prom
     request = { headers: { ...(request?.headers || {}), Cookie: `passport_csrf_token=${token}`, Referer: 'https://www.douyin.com/' } };
   }
   if (source.id === '36kr') request = { ...request, body: JSON.stringify({ partner_id: 'wap', param: { siteId: 1, platformId: 2 }, timestamp: Date.now() }) };
-  return (await fetcher(targetUrl, undefined, true, request)).text;
+  try{return (await fetcher(targetUrl, undefined, true, request)).text;}
+  catch(error){
+    const proxy=process.env.DITING_HOTLIST_PROXY_URL;
+    const transient=error instanceof Error&&(error.name==='AbortError'||error.name==='TimeoutError'||/aborted|timed?\s*out|ETIMEDOUT|ENETUNREACH|ECONNRESET/i.test(error.message));
+    // Only retry the fixed, public origins that have shown local connection
+    // timeouts. Verification pages and platform refusals remain failures.
+    if(!proxy||!transient||!['github','hostloc','linuxdo','nytimes','v2ex'].includes(source.id))throw error;
+    return (await fetcher(targetUrl,undefined,true,{...request,proxyUrl:proxy,allowedOrigins:[new URL(source.url).origin]})).text;
+  }
 }
 
 export class Hotlists {
