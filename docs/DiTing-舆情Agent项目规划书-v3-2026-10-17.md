@@ -1,3 +1,4 @@
+
 > **2026-10-17 v4 修订：完整报告为核心交付。** 用户明确要求保留 BettaFish 的三引擎、反思、Forum 多轮讨论、六套模板、完整 ReportEngine 与 HTML/MD/PDF。以下内容已按此调整；具体验收以《BettaFish功能保留与完整报告验收-v4.md》为准。当前为方案与交互原型，后端迁移尚待实施。
 
 # DiTing 舆情 Agent 项目规划书

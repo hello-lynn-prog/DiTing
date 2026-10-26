@@ -1,0 +1,54 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {mkdtempSync} from 'node:fs';
+import {join} from 'node:path';
+import {tmpdir} from 'node:os';
+import {Database,encode,now,uid} from '../packages/domain/db.js';
+import {Configuration} from '../packages/domain/configuration.js';
+import {CollectionSchedule} from '../packages/domain/collection.js';
+import {Hotlists} from '../packages/collectors/hotlists.js';
+import {Service} from '../packages/domain/service.js';
+import {statistics,templates} from '../packages/reporting/report.js';
+import {ROOT} from '../apps/server/settings.js';
+import {crawlBilibili} from '../packages/collectors/bilibili-keyword.js';
+function setup(){const dir=mkdtempSync(join(tmpdir(),'diting-alignment-')),db=new Database(join(dir,'state.sqlite3'),ROOT);return {db,config:new Configuration(db,dir),service:new Service(db)};}
+test('collection schedules persist independently of keyword monitoring and never create a research task',async()=>{
+ const {db,config}=setup();let calls=0;const hotlists=new Hotlists(db,async(url)=>{calls++;return {url,text:'{"stories":[{"id":1,"title":"明确的采集计划测试","url":"https://example.com/1"}]}'}}),schedule=new CollectionSchedule(config,hotlists);
+ schedule.save({enabled:true,interval_minutes:5,source_ids:['dailyhot:zhihu-daily']});
+ const stored=schedule.get();config.set('collection.schedule',{...stored,next_run_at:'2026-10-17T00:00:00Z'});
+ await Promise.all([schedule.tick(),schedule.tick()]);assert.equal(calls,1);assert.equal(db.one('SELECT COUNT(*) n FROM hotlist_snapshots')!.n,1);assert.equal(db.one('SELECT COUNT(*) n FROM tasks')!.n,0);
+ assert.equal(hotlists.status().configured.find(s=>s.source_id==='zhihu-daily')!.metric_count,0,'missing numeric fields remain missing, not successful metrics');
+ assert.ok(new CollectionSchedule(config,hotlists).get().last_run_at);
+ schedule.save({enabled:false,interval_minutes:15,cron:'',source_ids:[]});await schedule.tick();assert.equal(calls,1);
+ assert.throws(()=>schedule.save({enabled:true,cron:'bad cron',source_ids:[]}));
+ db.close();
+});
+test('sample tables preserve unlabeled documents and annotation provenance; template selection is frozen in the task',()=>{
+ const {db,service}=setup();const session=service.session(),task=service.send(session,'请采用品牌声誉研究组织报告，研究近30天测试品牌','selection-request').task_id;
+ assert.equal(service.task(task).config.template,'brand');assert.equal(service.task(task).config.window_days,30);
+ const evidence=service.archive(task,'https://example.com/1','测试原文','这是一份明确的测试原文，描述用户的负面评价。');
+ service.archive(task,'https://example.org/2','另一份测试','另一份未标注的测试原文，不应被算成中性。');
+ db.run('INSERT INTO artifacts VALUES(?,?,?,?,?,?)',uid('annotation'),task,'sample_annotation','insight',encode({evidence_id:evidence,sentiment:'negative',topics:['产品体验'],quote:'描述用户的负面评价',method:'model_annotation'}),now());
+ const result=statistics(db,task);assert.equal(result.datasets.length,12);
+ assert.ok(result.datasets.find(d=>d.dimension==='cluster')?.contract.algorithm);
+ assert.ok(result.datasets.find(d=>d.dimension==='wordcloud')?.contract.algorithm);
+ const sentiment=result.datasets.find(d=>d.dimension==='sentiment')!;
+ assert.deepEqual(new Map(sentiment.rows),new Map([['负向',1],['未分类',1]]));assert.equal(sentiment.contract.denominator,2);
+ assert.equal(result.datasets.find(d=>d.dimension==='platform')!.rows[0][0],'平台未提供');assert.equal(result.datasets.find(d=>d.dimension==='author')!.contract.missing_author,2);
+ assert.equal(new Set(templates.map(t=>t.sections.join('|'))).size,6,'six business templates must have distinct domain chapters');
+ db.close();
+});
+test('native keyword collection bounds public video/comment samples and retains source times and raw records',async()=>{
+ const {db,service}=setup(),task=service.createTask('研究明确的关键词采集测试',null),run=service.claim('collector-test')!,fixtureTime=Math.floor(Date.parse(service.rawTask(task).created_at)/1000)-60;let requests=0;
+ const fetcher=async(url:string)=>{requests++;return {url,text:JSON.stringify({code:0,data:url.includes('search/type')?{result:[{aid:1,bvid:'BV-test',title:'明确的<em>测试视频</em>',description:'这段测试简介是原始 API 文本。',author:'测试账号',pubdate:fixtureTime,play:42}]}:{replies:[{rpid:3,content:{message:'这是明确的测试评论内容。'},member:{uname:'测试评论账号'},ctime:fixtureTime,like:4}]}})};};
+ const scope={platform:'bilibili',query:'测试主题',max_pages:1,max_videos:1,comments_per_video:1};
+ const result=await crawlBilibili(service,task,run.lease_owner,scope,AbortSignal.timeout(10000),fetcher);
+ assert.equal(requests,2);assert.equal(result.records.length,2);assert.ok(result.truncated);assert.equal(result.errors.length,0);
+ assert.equal(db.one('SELECT COUNT(*) n FROM content_records')!.n,2);assert.equal(db.one('SELECT COUNT(*) n FROM task_evidence')!.n,2);
+ assert.ok(db.one("SELECT published_at FROM content_records WHERE record_type='comment'")!.published_at);
+ const stats=statistics(db,task);assert.equal(stats.datasets.find(d=>d.dimension==='publication_day')!.contract.missing_publication_dates,0);
+ const repeat=await crawlBilibili(service,task,run.lease_owner,scope,AbortSignal.timeout(10000),fetcher);assert.ok(repeat.records.every(r=>r.reused));assert.equal(db.one('SELECT COUNT(*) n FROM content_records')!.n,2);
+ service.action(task,'pause',service.task(task).revision);
+ await assert.rejects(crawlBilibili(service,task,run.lease_owner,scope,AbortSignal.timeout(1000),fetcher),/租约/);
+ db.close();
+});

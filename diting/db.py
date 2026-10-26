@@ -86,6 +86,22 @@ CREATE TABLE IF NOT EXISTS acquisitions(
  id TEXT PRIMARY KEY, task_id TEXT REFERENCES tasks(id), source TEXT NOT NULL,
  operation TEXT NOT NULL, status TEXT NOT NULL, detail TEXT NOT NULL, created_at TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS hotlist_snapshots(
+ id TEXT PRIMARY KEY, provider TEXT NOT NULL, source_id TEXT NOT NULL,
+ status TEXT NOT NULL CHECK(status IN ('succeeded','failed')),
+ item_count INTEGER NOT NULL DEFAULT 0 CHECK(item_count>=0),
+ error TEXT, observed_at TEXT NOT NULL, created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS hotlist_snapshots_lookup
+ ON hotlist_snapshots(provider,source_id,created_at DESC);
+CREATE TABLE IF NOT EXISTS hotlist_items(
+ id TEXT PRIMARY KEY, snapshot_id TEXT NOT NULL REFERENCES hotlist_snapshots(id),
+ item_key TEXT NOT NULL, title TEXT NOT NULL, url TEXT, rank INTEGER NOT NULL CHECK(rank>0),
+ heat_value REAL, heat_label TEXT, raw_json TEXT NOT NULL, content_hash TEXT NOT NULL,
+ UNIQUE(snapshot_id,item_key)
+);
+CREATE INDEX IF NOT EXISTS hotlist_items_snapshot_rank
+ ON hotlist_items(snapshot_id,rank);
 CREATE TABLE IF NOT EXISTS outbox(
  id TEXT PRIMARY KEY, dedupe_key TEXT NOT NULL UNIQUE, task_id TEXT REFERENCES tasks(id),
  event_type TEXT NOT NULL, channel TEXT NOT NULL, payload_json TEXT NOT NULL,

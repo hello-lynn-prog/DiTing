@@ -1,8 +1,7 @@
-# BettaFish 报告模板基线
+# BettaFish 报告模板（本地运行时）
 
-本目录六份 Markdown 模板原样复制自用户提供的本地 BettaFish 快照：
-`D:/工作学习/9github项目/agent-code-atlas-output/repos/BettaFish/ReportEngine/report_template`。
+六份 Markdown 来自用户提供的本地 BettaFish 快照，保持原文件内容；来源清单为 `docs/source-inventory-2026-10-18.json`，随附完整许可材料为 `LICENSE.BettaFish`。
 
-原项目：[666ghj/BettaFish](https://github.com/666ghj/BettaFish)。上游许可证全文保留在 `LICENSE.BettaFish`；模板未作改写。来源、文件哈希与复制日期见 `docs/source-inventory-2026-10-18.json`。
+2026-10-20 起 TS 运行时实际读取这六份文件，解析原始一级编号主章并将全部原始子节写入冻结模板契约。在原章后附加方法、样本、局限和溯源。原文件、中文章节和子节要求均被保留，新增渲染与结构解析由 DiTing 实现。
 
-这里是后续 ReportEngine 回归与迁移的版本基线，不代表已经完成六模板的真实成稿和 PDF 验收。
+部署此本地个人项目时，须携带本目录。运行时不会将模板内容作为工具、权限或预算指令执行。来源及许可证材料保持原样；本次修改没有推送或发布这些文件，也不把混合许可材料概括为宽松许可授权。

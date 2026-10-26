@@ -1,0 +1,13 @@
+{
+  "date": "2026-10-18",
+  "environment": "Windows / Node.js v24.15.0 / isolated SQLite",
+  "suite": "tests-ts/*.test.ts",
+  "total": 65,
+  "passed": 65,
+  "failed": 0,
+  "skipped": 0,
+  "reliability_cases": 12,
+  "source_report": "unit-2026-10-18.xml",
+  "source_sha256": "BBD7D0860B181BA6F2C9F292B95BA56448C14C47F52AD95519235FDFABBD848B",
+  "scope": "automated fixtures and real local process restart; not real news/report certification"
+}

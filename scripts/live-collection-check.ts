@@ -1,0 +1,8 @@
+import {Database} from '../packages/domain/db.js';
+import {Hotlists} from '../packages/collectors/hotlists.js';
+import {ROOT} from '../apps/server/settings.js';
+import {mkdtempSync,mkdirSync,writeFileSync} from 'node:fs';
+import {join} from 'node:path';
+mkdirSync(join(ROOT,'tmp'),{recursive:true});const dir=process.argv.includes('--persist')?join(ROOT,'data'):mkdtempSync(join(ROOT,'tmp/native-source-check-'));
+const db=new Database(join(dir,'diting.sqlite3'),ROOT);
+try{const hotlists=new Hotlists(db),selected=process.argv.find(a=>a.startsWith('--sources='))?.slice(10).split(','),result=await hotlists.collect('both',selected);const status=hotlists.status(),summary={...result,succeeded:status.configured.filter(s=>s.health==='succeeded').length,failed:status.configured.filter(s=>s.health==='failed').length,scope:'latest-real-result-per-registered-source',sources:status.configured,channels:status.channels,mode:'direct-original-platform-http-no-newsnow-service',checked_at:new Date().toISOString()};writeFileSync(join(ROOT,'docs','hotlist-live-verification-'+new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Shanghai'}).format(new Date())+'.json'),JSON.stringify(summary,null,2));for(const s of status.configured.filter(s=>!selected||selected.includes(s.source_id)))console.log(`${s.health}\t${s.source_id}\titems=${s.item_count}\tmetrics=${s.metric_count}\t${s.last_error||''}`);console.log(JSON.stringify({succeeded:summary.succeeded,failed:summary.failed,channels:status.channels.length,report:'docs/hotlist-live-verification-'+new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Shanghai'}).format(new Date())+'.json'}));}finally{db.close();}

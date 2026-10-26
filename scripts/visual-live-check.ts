@@ -1,0 +1,21 @@
+import {mkdirSync,mkdtempSync,writeFileSync,readFileSync} from 'node:fs';
+import {join} from 'node:path';
+import {execFileSync} from 'node:child_process';
+import {createRequire} from 'node:module';
+import {ROOT,settings} from '../apps/server/settings.js';
+import {Database,uid,encode,now} from '../packages/domain/db.js';
+import {Service} from '../packages/domain/service.js';
+import {Configuration} from '../packages/domain/configuration.js';
+import {VisualInvestigation} from '../packages/collectors/visual.js';
+const dataDir=settings().dataDir,official=new Database(join(dataDir,'diting.sqlite3'),ROOT),officialConfig=new Configuration(official,dataDir),route=officialConfig.route('media');
+if(!route?.rates)throw Error('Media 路由缺少配置或费率');
+mkdirSync(join(dataDir,'qa'),{recursive:true});const dir=mkdtempSync(join(dataDir,'qa','vision-live-')),db=new Database(join(dir,'diting.sqlite3'),ROOT),service=new Service(db),config=new Configuration(db,dir);
+config.putSecret('live-vision-key',officialConfig.secret(route.key_ref)!);const copied={...route,key_ref:'live-vision-key',max_tokens:4096};
+const task=service.createTask('明确的视觉接口验收：生成红色测试图，不是真实舆情资料',null),lease=service.claim('vision-live-check')!,token=lease.lease_owner;db.run('UPDATE tasks SET budget=1 WHERE id=?',task);
+const video=process.argv.includes('--video'),image=join(dir,video?'explicit-color-fixture.mp4':'explicit-red-fixture.png'),ffmpeg=createRequire(import.meta.url)('ffmpeg-static') as string;
+execFileSync(ffmpeg,video?['-hide_banner','-loglevel','error','-f','lavfi','-i','color=c=red:s=320x180:r=1:d=15','-f','lavfi','-i','color=c=blue:s=320x180:r=1:d=15','-filter_complex','[0:v][1:v]concat=n=2:v=1:a=0[v]','-map','[v]','-pix_fmt','yuv420p',image]:['-hide_banner','-loglevel','error','-f','lavfi','-i','color=c=red:s=320x180','-frames:v','1',image]);
+const url='https://example.org/explicit-generated-fixture.'+(video?'mp4':'png'),evidence=service.archive(task,'https://example.org/explicit-vision-fixture','生成视觉测试素材的说明','本材料是本机生成的颜色测试素材，只用于视觉接口和证据链验收，不代表真实新闻。','fixture',token);
+db.run('INSERT INTO artifacts VALUES(?,?,?,?,?,?)',uid('artifact'),task,'media_assets','media',encode({evidence_id:evidence,assets:[{type:video?'video':'image',url}]}),now());
+try{const visual=new VisualInvestigation(service,config,{binary:async()=>({bytes:readFileSync(image),url,mediaType:video?'video/mp4':'image/png'})}),result=await visual.inspect(task,token,evidence,url,video?'按帧索引描述每张图像主要颜色，不要推测音频或帧间内容':'描述图像主要可见颜色；无法辨认其他内容时说明',copied,AbortSignal.timeout(150000));
+const passed=/红|red/i.test(JSON.stringify(result.observation))&&(!video||/蓝|blue/i.test(JSON.stringify(result.observation)));const output={checked_at:now(),passed,real_model_called:true,materials:'explicit-generated-media-not-real-news',production_certified:false,result,usage:db.rows('SELECT role,provider,model,input_tokens,output_tokens,cache_tokens,cost,status FROM model_calls')};writeFileSync(join(dir,'result.json'),JSON.stringify(output,null,2));console.log(JSON.stringify({passed,archive:dir,usage:output.usage,summary:result.observation.summary}));if(!passed)process.exitCode=1;
+}finally{for(const c of db.rows('SELECT * FROM model_calls'))official.run('INSERT OR IGNORE INTO model_calls VALUES(?,NULL,NULL,?,?,?,?,?,?,?,?,?,?)',c.id,'media-vision-acceptance',c.provider,c.model,c.input_tokens,c.output_tokens,c.cache_tokens,c.cost,c.status,c.attempt,c.created_at);official.event(null,'visual.acceptance',{message:'生成测试图的真实视觉接口验收已执行；实际费用进入总账，合成材料不进入正式研究报告',archive:dir});db.close();official.close();}

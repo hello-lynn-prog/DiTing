@@ -1,0 +1,52 @@
+{
+  "test": "explicit-synthetic-full-pipeline-not-real-research",
+  "child_sessions": 8,
+  "event_methods": [
+    "session.event",
+    "session.status",
+    "subagent.started",
+    "subagent.finished"
+  ],
+  "model_fixture_calls": {
+    "root": 16,
+    "insight": 3,
+    "media": 3,
+    "query": 3,
+    "forum": 3,
+    "planner": 3,
+    "verifier": 3,
+    "advocate": 3,
+    "report": 18
+  },
+  "artifacts": [
+    "investigation",
+    "investigation",
+    "investigation",
+    "forum",
+    "dataset",
+    "dataset",
+    "dataset",
+    "dataset",
+    "dataset",
+    "dataset",
+    "report_stage",
+    "report_stage",
+    "report_stage",
+    "report_stage",
+    "report_stage",
+    "report_stage",
+    "report_stage",
+    "report_stage",
+    "report_stage",
+    "report_stage",
+    "report_stage",
+    "report_stage",
+    "report_stage",
+    "report_stage",
+    "report_ir",
+    "report_quality",
+    "report_candidate"
+  ],
+  "reports": 1,
+  "production_certified": false
+}

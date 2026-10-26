@@ -1,0 +1,10 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {mkdtempSync} from 'node:fs';import {tmpdir} from 'node:os';import {join} from 'node:path';
+import {Database,uid,encode,now} from '../packages/domain/db.js';import {Service} from '../packages/domain/service.js';import {persistInvestigation} from '../packages/dsh-diting/investigation-submit.js';import {finalizeInvestigatorSections} from '../packages/dsh-diting/investigation-sections.js';
+
+test('wide-topic engine retains all paragraph findings and cannot complete after just its first two sections',()=>{
+ const db=new Database(join(mkdtempSync(join(tmpdir(),'diting-engine-sections-')),'db.sqlite3'),process.cwd()),service=new Service(db),task=service.createTask('分析AI行业四类争议',null),run=service.claim('fixture')!,eid=service.archive(task,'https://example.org/sections','原文','这是原文中的可核验陈述。',run.lease_owner);
+ try{for(let i=1;i<=4;i++)db.run('INSERT INTO artifacts VALUES(?,?,?,?,?,?)',uid('reflection'),task,'investigation_reflection','insight',encode({section_id:'section-'+i,decision:'stop',findings:'该段已经读取真实的测试来源，仅验收软件行为。'}),now());
+ for(let i=1;i<=4;i++){persistInvestigation(db,service,task,'insight',[{text:['甲','乙','丙','丁'][i-1]+'段判断有原文引用支持。',references:[{evidence_id:eid,quote:'这是原文中的可核验陈述。'}]}],[],run.lease_owner,'agent_fixture',{kind:'investigation_section',metadata:{section_id:'section-'+i,section_title:['Agent','世界模型','融资','安全治理'][i-1],source_backed_stop:true}});const progress=finalizeInvestigatorSections(db,service,task,'insight',run.lease_owner,'agent_fixture',4);assert.equal(progress.role_completed,i===4);if(i<4)assert.equal(db.one("SELECT COUNT(*) n FROM artifacts WHERE kind='investigation'")!.n,0);else assert.equal(progress.claim_ids!.length,4);}
+ const final=JSON.parse(db.one("SELECT data_json FROM artifacts WHERE kind='investigation'")!.data_json);assert.deepEqual(final.sections.map((s:any)=>s.title),['Agent','世界模型','融资','安全治理']);assert.equal(final.section_contract,true);assert.equal(finalizeInvestigatorSections(db,service,task,'media',run.lease_owner,'other',4).role_completed,false);
+ }finally{db.close();}
+});

@@ -1,0 +1,131 @@
+[
+  {
+    "test": "explicit-synthetic-full-pipeline-not-real-research",
+    "child_sessions": 8,
+    "event_methods": [
+      "session.event",
+      "session.status",
+      "subagent.started",
+      "subagent.finished"
+    ],
+    "model_fixture_calls": {
+      "root": 15,
+      "insight": 7,
+      "media": 7,
+      "query": 7,
+      "forum": 6,
+      "planner": 3,
+      "verifier": 3,
+      "advocate": 3,
+      "report": 19
+    },
+    "artifacts": [
+      "investigation_reflection",
+      "investigation_reflection",
+      "investigation_reflection",
+      "forum",
+      "investigation_reflection",
+      "investigation",
+      "investigation_reflection",
+      "investigation",
+      "investigation_reflection",
+      "investigation",
+      "forum",
+      "dataset",
+      "dataset",
+      "dataset",
+      "dataset",
+      "dataset",
+      "dataset",
+      "dataset",
+      "dataset",
+      "dataset",
+      "dataset",
+      "dataset",
+      "report_stage",
+      "report_stage",
+      "report_stage",
+      "report_stage",
+      "report_stage",
+      "report_stage",
+      "report_stage",
+      "report_stage",
+      "report_stage",
+      "report_stage",
+      "report_stage",
+      "report_stage",
+      "report_stage",
+      "report_stage",
+      "report_stage",
+      "report_ir",
+      "report_quality",
+      "report_candidate"
+    ],
+    "reports": 1,
+    "production_certified": false
+  },
+  {
+    "test": "explicit-native-continuable-child-followup",
+    "child_sessions": 2,
+    "event_methods": [
+      "session.event",
+      "session.status",
+      "subagent.started",
+      "subagent.finished"
+    ],
+    "model_fixture_calls": {
+      "root": 7,
+      "insight": 16,
+      "forum": 11
+    },
+    "artifacts": [
+      "keyword_optimization",
+      "investigation_reflection",
+      "forum",
+      "investigation_reflection",
+      "investigation",
+      "forum",
+      "investigation_reflection",
+      "forum",
+      "investigation_reflection",
+      "investigation",
+      "forum"
+    ],
+    "reports": 0,
+    "production_certified": false
+  },
+  {
+    "test": "native-dsh-skill-role-isolation-and-audit",
+    "child_sessions": 1,
+    "event_methods": [
+      "session.event",
+      "session.status",
+      "subagent.started",
+      "subagent.finished"
+    ],
+    "model_fixture_calls": {
+      "root": 4,
+      "insight": 4
+    },
+    "artifacts": [],
+    "reports": 0,
+    "production_certified": false
+  },
+  {
+    "test": "native-dsh-mcp-permissions-caps-and-audit",
+    "child_sessions": 1,
+    "event_methods": [
+      "session.event",
+      "session.status",
+      "subagent.started",
+      "subagent.finished"
+    ],
+    "model_fixture_calls": {
+      "root": 4,
+      "insight": 5
+    },
+    "artifacts": [],
+    "reports": 0,
+    "production_certified": false
+  }
+]

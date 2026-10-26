@@ -1,0 +1,12 @@
+import {DatabaseSync} from 'node:sqlite';
+const db=new DatabaseSync('data/diting.sqlite3',{readOnly:true});
+const taskId=process.argv[2];if(!taskId)throw Error('需要任务编号');
+const task=db.prepare('SELECT status,stage,block_reason,created_at FROM tasks WHERE id=?').get(taskId) as any;
+if(!task)throw Error('任务不存在');
+const events=db.prepare('SELECT created_at,kind,payload_json FROM events WHERE task_id=? ORDER BY rowid DESC LIMIT 8').all(taskId) as any[];
+const agents=db.prepare('SELECT role,status FROM agent_runs WHERE task_id=? ORDER BY rowid').all(taskId);
+const calls=db.prepare('SELECT role,COUNT(*) calls,ROUND(SUM(cost),6) cost FROM model_calls WHERE task_id=? GROUP BY role').all(taskId);
+const sections=db.prepare("SELECT role,COUNT(*) saved_sections FROM artifacts WHERE task_id=? AND kind='investigation_section' GROUP BY role").all(taskId);
+const evidence=db.prepare('SELECT COUNT(*) n FROM task_evidence WHERE task_id=?').get(taskId);
+const failures=db.prepare("SELECT COUNT(*) n FROM events WHERE task_id=? AND kind='tool.failed'").get(taskId);
+console.log(JSON.stringify({at:new Date().toISOString(),task_id:taskId,...task,elapsed_minutes:Math.round((Date.now()-Date.parse(task.created_at))/6000)/10,evidence,agents,sections,calls,failures,latest:events.map(e=>{const p=JSON.parse(e.payload_json);return {at:e.created_at,kind:e.kind,role:p.role,tool:p.tool,message:p.message};})},null,2));db.close();

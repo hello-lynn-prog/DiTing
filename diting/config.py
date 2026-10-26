@@ -16,6 +16,9 @@ class Settings:
     dsh_root: Path | None = None
     default_budget: float = 20.0
     worker_interval: float = 1.0
+    newsnow_base_url: str = "http://127.0.0.1:3000"
+    dailyhot_base_url: str = "http://127.0.0.1:6688"
+    source_timeout_seconds: float = 12.0
 
     @classmethod
     def from_env(cls):
@@ -26,5 +29,8 @@ class Settings:
             bettafish_root=path("DITING_BETTAFISH_ROOT") or existing(Path("D:/工作学习/9github项目/agent-code-atlas-output/repos/BettaFish")),
             dsh_root=path("DITING_DSH_ROOT") or existing(Path("D:/Study/deepseek_harness/deepseek-harness")),
             default_budget=float(os.environ.get("DITING_DEFAULT_BUDGET", "20")),
+            newsnow_base_url=os.environ.get("DITING_NEWSNOW_BASE_URL", "http://127.0.0.1:3000").rstrip("/"),
+            dailyhot_base_url=os.environ.get("DITING_DAILYHOT_BASE_URL", "http://127.0.0.1:6688").rstrip("/"),
+            source_timeout_seconds=float(os.environ.get("DITING_SOURCE_TIMEOUT_SECONDS", "12")),
         )
 

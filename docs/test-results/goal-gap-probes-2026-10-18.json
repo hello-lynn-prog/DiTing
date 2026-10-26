@@ -1,0 +1,50 @@
+{
+  "date": "2026-10-18",
+  "scope": "isolated explicit synthetic audit, not a production report or passed research review",
+  "results": [
+    {
+      "id": "numeric-association",
+      "input": "synthetic source: group A=42, group B=7; submitted claim: group A=7",
+      "accepted_by_numeric_check": true,
+      "meaning": "number membership is checked, entity/value association is not; no semantic review was executed"
+    },
+    {
+      "id": "template-specific-chapters",
+      "selected_template": "brand",
+      "declared_sections": [
+        "研究摘要",
+        "研究范围与方法",
+        "事实与时间线",
+        "平台样本分析",
+        "观点与分歧",
+        "产品体验与利益相关方",
+        "声誉触发因素与回应评估",
+        "风险研判",
+        "应对建议",
+        "局限与待核实事项",
+        "来源与统计附录"
+      ],
+      "submitted_sections": [
+        "摘要",
+        "范围方法",
+        "事实时间线",
+        "样本分析",
+        "观点分歧",
+        "风险研判",
+        "应对建议",
+        "局限",
+        "来源附录"
+      ],
+      "candidate_accepted": true,
+      "meaning": "generic chapter requirements apply, template-specific chapter requirements are not enforced"
+    },
+    {
+      "id": "uploaded-template-validation",
+      "http_status": 200,
+      "parsed_sections": [],
+      "meaning": "upload accepts a template with zero parsed headings"
+    }
+  ],
+  "formal_report_created": false,
+  "isolated_report_count": 0
+}

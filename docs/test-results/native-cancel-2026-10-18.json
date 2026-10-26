@@ -1,0 +1,10 @@
+{
+  "test": "native-dsh-cancel-during-pending-model-request",
+  "passed": true,
+  "model_fixture_calls": {
+    "root": 1
+  },
+  "reports": 0,
+  "evidence": 0,
+  "production_certified": false
+}

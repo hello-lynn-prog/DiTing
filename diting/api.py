@@ -11,6 +11,7 @@ from .config import ROOT, Settings
 from .db import Database
 from .runtime import RuntimeRegistry
 from .service import Conflict, Missing, Service
+from .hotlists import HotlistCollector
 from .worker import Worker
 
 
@@ -45,11 +46,17 @@ class EvidenceInput(Input):
     content: str = Field(min_length=5, max_length=1_000_000)
 
 
+class HotlistCollectInput(Input):
+    provider: str = Field(default="both", pattern="^(newsnow|dailyhot|both)$")
+    source_ids: list[str] | dict[str, list[str]] | None = None
+
+
 def create_app(settings=None, start_worker=True):
     settings = settings or Settings.from_env()
     db = Database(settings.data_dir / "diting.sqlite3")
     service = Service(db, settings)
     registry = RuntimeRegistry(settings)
+    hotlists = HotlistCollector(db, settings)
     worker = Worker(service, registry, settings.worker_interval)
 
     @asynccontextmanager
@@ -61,6 +68,7 @@ def create_app(settings=None, start_worker=True):
 
     app = FastAPI(title="DiTing Agent API", version="0.1.0", lifespan=lifespan)
     app.state.service, app.state.worker, app.state.registry = service, worker, registry
+    app.state.hotlists = hotlists
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost", "[::1]", "testserver"])
 
     @app.middleware("http")
@@ -98,6 +106,18 @@ def create_app(settings=None, start_worker=True):
     @app.get("/api/integrations")
     def integrations():
         return registry.capabilities()
+
+    @app.get("/api/hotlists/sources")
+    def hotlist_sources():
+        return hotlists.sources()
+
+    @app.get("/api/hotlists/latest")
+    def hotlist_latest(limit: int = 100):
+        return hotlists.latest(limit)
+
+    @app.post("/api/hotlists/collect")
+    def hotlist_collect(body: HotlistCollectInput):
+        return hotlists.collect(body.provider, body.source_ids)
 
     @app.get("/api/sessions")
     def sessions():
