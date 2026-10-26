@@ -87,8 +87,13 @@ export class Monitoring {
     // Monitoring may create leads, but a reader explicitly decides whether to start research.
     b.auto_research=false;if(b.action==='auto')b.action='confirm';id ||= uid('monitor');
     this.db.transaction(() => {
+      const previous=this.config.get<Row>(`monitor.${id}`,{});
+      const existing=Boolean(this.db.one('SELECT id FROM monitors WHERE id=?',id!));
+      // Legacy monitors have no saved watermark: retain their timestamp rule
+      // on update, rather than silently skipping archives captured since setup.
+      const archiveBaseline=Number.isSafeInteger(previous.archive_baseline_rowid)?previous.archive_baseline_rowid:existing?undefined:Number(this.db.one('SELECT COALESCE(MAX(rowid),0) n FROM evidence')?.n||0);
       this.db.run(`INSERT INTO monitors VALUES(?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET title=excluded.title,keywords_json=excluded.keywords_json,enabled=excluded.enabled,interval_minutes=excluded.interval_minutes,auto_research=excluded.auto_research,budget=excluded.budget,next_run_at=excluded.next_run_at`, id!, b.title, encode(b.keywords), Number(b.enabled), b.interval_minutes, Number(b.auto_research), b.budget, next, now());
-      this.config.set(`monitor.${id}`, {...b,version:uid('monitor_config')});
+      this.config.set(`monitor.${id}`, {...b,...(archiveBaseline===undefined?{}:{archive_baseline_rowid:archiveBaseline}),version:uid('monitor_config')});
     }); return this.list().find(m => m.id === id);
   }
   evaluate(only?:string[],snapshotIds?:string[]) {
@@ -113,7 +118,7 @@ export class Monitoring {
   /** Scan only already archived full text; this method never makes platform/network requests. */
   evaluateArchivedContent(only?:string[]) {
     let count=0;
-    const archived=this.db.rows(`SELECT e.id evidence_id,e.source_url,e.title,e.content,e.captured_at,m.published_at,m.author,m.publisher,
+    const archived=this.db.rows(`SELECT e.rowid evidence_rowid,e.id evidence_id,e.source_url,e.title,e.content,e.captured_at,m.published_at,m.author,m.publisher,
       c.platform,c.record_type,c.metrics_json,c.published_at content_published_at
       FROM evidence e LEFT JOIN evidence_metadata m ON m.evidence_id=e.id
       LEFT JOIN content_records c ON c.evidence_id=e.id
@@ -122,7 +127,8 @@ export class Monitoring {
     for(const monitor of monitors)for(const item of archived){
       // Existing research archives are a baseline, not newly discovered leads.
       // Only content captured after this monitor was created may generate a signal.
-      if(!item.captured_at||isHistoricalArchiveEvidence({type:'archived_post',captured_at:item.captured_at,published_at:item.content_published_at||item.published_at},monitor.created_at))continue;
+      const baseline=monitor.archive_baseline_rowid;
+      if(!item.captured_at||(Number.isSafeInteger(baseline)?Number(item.evidence_rowid)<=baseline||timestampBefore(item.content_published_at||item.published_at,monitor.created_at):isHistoricalArchiveEvidence({type:'archived_post',captured_at:item.captured_at,published_at:item.content_published_at||item.published_at},monitor.created_at)))continue;
       const full=`${item.title||''}\n${item.content||''}`,matches=this.matches(full,monitor.keywords),keywords=matches.map(x=>x.configured);if(!keywords.length)continue;
       const canonical=matches.map(x=>x.canonical).sort().join('+'),eventKey=hash(encode([canonical,norm(item.title||full.slice(0,120))]));
       this.db.transaction(()=>{

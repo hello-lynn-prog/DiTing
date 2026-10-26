@@ -8,6 +8,17 @@ test('daily event cites the directly relevant story before an omnibus brief',()=
  ];
  assert.equal(rankTopicPages(topic,pages)[0].url,'https://example.org/zte');
 });
+test('same-day preview reuses an article archived after the frozen hotlist snapshot',async()=>{
+ const dir=mkdtempSync(join(tmpdir(),'diting-digest-frozen-cache-')),db=new Database(join(dir,'state.sqlite3'),ROOT);
+ try{
+  const excerpt=Array.from({length:35},(_,i)=>`中兴通讯公布第三季度业绩，第${i+1}项财务说明涉及营业收入、净利润和业务进展。`).join('');
+  const page={topic_id:'theme-zte',url:'https://news.example.org/2026/10/26/zte',final_url:'https://news.example.org/2026/10/26/zte',excerpt,content_hash:'archived-hash',fetched_at:'2026-10-26T19:00:00+08:00',published_at:'2026-10-26T17:00:00+08:00',status:'fetched',method:'native_article_paragraphs'};
+  db.run('INSERT INTO daily_digests(id,report_date,title,data_json,created_at) VALUES(?,?,?,?,?)',uid('digest'),'2026-10-26','prior',encode({source_pages:[page]}),'2026-10-26T19:01:00+08:00');
+  const service=new DailyDigest(db,()=>new Date('2026-10-26T19:30:00+08:00'),undefined,fetch,async()=>{throw new Error('already archived; must not refetch');});
+  const result=await(service as any).sourcePages('2026-10-26',[{id:'theme-zte',title:'中兴通讯公布第三季度业绩',source_urls:[page.url]}],{through:new Date('2026-10-26T18:45:00+08:00')});
+  assert.equal(result[0].reused,true);assert.equal(result[0].topic_id,'theme-zte');assert.equal(result[0].url,page.url);
+ }finally{db.close();}
+});
 test('Firecrawl news-flash excerpt excludes recommendation chrome before material scoring',()=>{
  const short='财联社10月22日电，针对设备适配问题，相关平台表示将尽快推出更新。';
  const raw=`# 快讯 ${short} 财联社声明：文章内容仅供参考，不构成投资建议。 1289436 阅读 热门解锁 ${'其它文章推荐与广告。'.repeat(120)}`;

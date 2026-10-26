@@ -36,7 +36,7 @@ test('questions do not create tasks, research persists, duplicate request confli
   assert.throws(() => s.send(sid, '调查另一主题', 'same-request-key'), Conflict); assert.ok(!('lease_owner' in s.task(a.task_id))); db.close();
 });
 test('conversation template mode is frozen as auto, user upload, or co-created template on each research task',()=>{
- const {db,service:s}=setup(),config=new Configuration(db,process.env.TEMP||'data'),sid=s.session();
+ const {db,service:s,dir}=setup(),config=new Configuration(db,dir),sid=s.session();
  try{const imported=validateTemplateMarkdown('测试上传模板','# 测试模板\n## 报告摘要\n## 事实背景\n## 多方观点\n## 影响分析\n## 风险研判\n## 结论建议','user_import'),created=validateTemplateMarkdown('测试共创模板','# 共创模板\n## 报告摘要\n## 事件脉络\n## 观点分析\n## 影响评估\n## 风险研判\n## 行动建议','co_created');config.set('templates.custom',[imported,created]);
   const auto=s.send(sid,'调查近期AI行业争议','template-auto-req');assert.equal(s.task(auto.task_id).config.template_selection.mode,'auto');
   const upload=s.createTask('研究品牌声誉',sid,null,'chat',{mode:'user_import',template_id:imported.id});assert.equal(s.task(upload).config.template,imported.id);assert.equal(s.task(upload).config.template_selection.mode,'user_import');

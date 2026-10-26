@@ -67,10 +67,11 @@ test('notifications need explicit subscription, deduplicate channels and do not 
 });
 test('archived body keyword scan creates linked leads without making collection requests',()=>{
   const {db,config,service}=setup();const monitor=new Monitoring(db,config,service,new Hotlists(db,async()=>{throw Error('network must not be called')}));
-  monitor.save({title:'正文提醒',keywords:['AI 风险防控'],enabled:true});
+  const rule=monitor.save({title:'正文提醒',keywords:['AI 风险防控'],enabled:true});
   const task=service.createTask('归档样本测试',null,null,'chat');
   service.archive(task,'https://example.org/post/1','普通标题','这段正文提到了 AI 风险防控，应当被已归档正文匹配。','crawler');
   service.archive(task,'','无来源链接的帖子','另一段正文也提到了 AI 风险防控。','crawler');
+  db.run('UPDATE evidence SET captured_at=? WHERE title IN (?,?)',rule!.created_at,'普通标题','无来源链接的帖子');
   assert.equal(monitor.evaluateArchivedContent(),2);
   const signal=db.rows('SELECT * FROM signals').find(s=>s.title==='普通标题')!,e=JSON.parse(signal.evidence_json);
   assert.equal(e.type,'archived_post');assert.equal(e.source_url,'https://example.org/post/1');assert.equal(e.match_field,'body');assert.equal(e.current_heat,null);assert.equal(e.previous_heat,null);assert.ok(e.captured_at);
@@ -80,7 +81,8 @@ test('archived body keyword scan creates linked leads without making collection 
 test('pre-existing archived research content is not emitted as a newly discovered monitoring signal',()=>{
   const {db,config,service}=setup();const monitor=new Monitoring(db,config,service,new Hotlists(db,async()=>{throw Error('network must not be called')}));
   const task=service.createTask('既有归档样本',null,null,'chat');service.archive(task,'https://example.org/old','旧帖子标题','旧正文提及 AI 风险防控。','crawler');
-  monitor.save({title:'新建监测规则',keywords:['AI 风险防控'],enabled:true});
+  const rule=monitor.save({title:'新建监测规则',keywords:['AI 风险防控'],enabled:true});
+  db.run('UPDATE evidence SET captured_at=? WHERE title=?',rule!.created_at,'旧帖子标题');
   assert.equal(monitor.evaluateArchivedContent(),0,'only archive captures made after the monitor was created can create leads');
   assert.equal(db.one('SELECT COUNT(*) n FROM signals')!.n,0);db.close();
 });
