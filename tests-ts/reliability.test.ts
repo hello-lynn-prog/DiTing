@@ -60,6 +60,14 @@ test('11:30 early-brief schedule has a separate clock and never catches up after
  }finally{s.db.close();}
 });
 
+test('23:30 daily schedule has a separate clock and skips a missed late-night run',async()=>{
+ const s=setup(),time=new Date('2026-10-25T16:10:00Z');let requests=0,followups=0;
+ const evening=new CollectionSchedule(s.config,new Hotlists(s.db,async url=>{requests++;return {url,text:sample()};}),()=>time,()=>{followups++;},'collection.evening_schedule','collection.evening_active',30*60_000);
+ try{evening.save({enabled:true,interval_minutes:60,cron:'30 23 * * *',source_ids:['dailyhot:zhihu-daily']});s.config.set('collection.evening_schedule',{...evening.get(),next_run_at:'2026-10-25T15:30:00.000Z'});
+ await evening.tick();assert.equal(requests,0);assert.equal(followups,0);assert.equal(evening.get().last_status,'missed');assert.equal(evening.get().next_run_at,'2026-10-26T15:30:00.000Z');assert.equal(s.config.get('collection.schedule',null),null);
+ }finally{s.db.close();}
+});
+
 test('overlapping full and single-source requests share the in-flight source request and one archived snapshot',async()=>{
  const s=setup(),hold=gate();let calls=0;const hot=new Hotlists(s.db,async url=>{calls++;await hold.promise;return {url,text:url.includes('guokr')?'{"data":[{"id":1,"title":"明确的果壳测试"}]}':sample()};});
  try{const group=hot.collect('dailyhot',['zhihu-daily','guokr']),single=hot.collect('dailyhot',['zhihu-daily']);assert.equal(calls,2);hold.release();const [a,b]=await Promise.all([group,single]);assert.equal(a.snapshots.find((r:any)=>r.source_id==='zhihu-daily')!.id,b.snapshots[0].id);assert.equal(s.db.one('SELECT COUNT(*) n FROM hotlist_snapshots')!.n,2);await hot.collect('dailyhot',['zhihu-daily']);assert.equal(calls,3);}finally{hold.release();s.db.close();}

@@ -43,9 +43,6 @@ export async function createApp(overrides: Partial<Settings> = {}, startWorker =
   const collection = new CollectionSchedule(config, hotlists,()=>new Date(),async result=>{
     const successful=result.snapshots.filter((s:Row)=>s.status==='succeeded').map((s:Row)=>s.id);
     if(successful.length){try{monitoring.evaluate(undefined,successful);}catch(error){db.event(null,'monitoring.followup_failed',{collection_run_id:result.run_id,message:error instanceof Error?error.message:'采集后信号评估失败'});}}
-    if(!result.succeeded){db.event(null,'daily_digest.schedule_skipped',{collection_run_id:result.run_id,reason:'本轮全源采集没有成功快照，未生成日报'});return;}
-    const digest=await dailyDigest.generatePreviousDayIfMissing({referenceTime:new Date(result.started_at)});
-    db.event(null,digest?'daily_digest.schedule_finished':'daily_digest.schedule_skipped',{collection_run_id:result.run_id,report_date:new Date(Date.parse(result.started_at)-86400000).toLocaleDateString('en-CA',{timeZone:'Asia/Shanghai'}),digest_id:digest?.id||null,quality_status:digest?.quality_status||null,reason:digest?null:'该日已生成日报，或前一自然日没有成功的归档快照'});
   });
   const morningCollection = new CollectionSchedule(config,hotlists,()=>new Date(),async result=>{
     const successful=result.snapshots.filter((s:Row)=>s.status==='succeeded').map((s:Row)=>s.id);
@@ -58,6 +55,15 @@ export async function createApp(overrides: Partial<Settings> = {}, startWorker =
     db.event(null,brief?'daily_brief.schedule_finished':'daily_brief.schedule_skipped',{collection_run_id:result.run_id,report_date:new Date(result.started_at).toLocaleDateString('en-CA',{timeZone:'Asia/Shanghai'}),digest_id:brief?.id||null,quality_status:brief?.quality_status||null,reason:brief?null:'今日早报已存在，或没有成功的当日上午快照'});
   },'collection.morning_schedule','collection.morning_active',30*60_000);
   if(!config.get('collection.morning_schedule',null))morningCollection.save({enabled:collection.get().enabled,interval_minutes:60,cron:'30 11 * * *',source_ids:collection.get().source_ids});
+  const eveningCollection = new CollectionSchedule(config,hotlists,()=>new Date(),async result=>{
+    const successful=result.snapshots.filter((s:Row)=>s.status==='succeeded').map((s:Row)=>s.id);
+    if(successful.length){try{monitoring.evaluate(undefined,successful);}catch(error){db.event(null,'monitoring.followup_failed',{collection_run_id:result.run_id,message:error instanceof Error?error.message:'晚间采集后信号评估失败'});}}
+    const started=new Date(result.started_at),date=started.toLocaleDateString('en-CA',{timeZone:'Asia/Shanghai'}),finished=new Date();
+    if(!result.succeeded||finished.toLocaleDateString('en-CA',{timeZone:'Asia/Shanghai'})!==date){db.event(null,'daily_digest.schedule_skipped',{collection_run_id:result.run_id,report_date:date,reason:!result.succeeded?'本轮全源采集没有成功快照':'本轮采集跨过自然日边界，未把次日材料写入前一日日报'});return;}
+    const digest=await dailyDigest.generateSameDayIfMissing({referenceTime:started,through:finished});
+    db.event(null,digest?'daily_digest.schedule_finished':'daily_digest.schedule_skipped',{collection_run_id:result.run_id,report_date:date,digest_id:digest?.id||null,quality_status:digest?.quality_status||null,reason:digest?null:'该日已生成日报，或截至本轮结束没有成功的当日归档快照'});
+  },'collection.evening_schedule','collection.evening_active',30*60_000);
+  if(!config.get('collection.evening_schedule',null))eveningCollection.save({enabled:collection.get().enabled,interval_minutes:60,cron:'30 23 * * *',source_ids:collection.get().source_ids});
   const wakeReadyTasks=()=>{const capability=runtime.capabilities();db.transaction(()=>{for(const task of db.rows("SELECT id,block_reason FROM tasks WHERE status='waiting_runtime'")){if(capability.ready){db.run("UPDATE tasks SET status='queued',block_reason=NULL,revision=revision+1,updated_at=? WHERE id=?",now(),task.id);db.event(task.id,'runtime.recheck',{message:'执行配置已更新，自动重新排队检查'});}else if(task.block_reason!==capability.reason){db.run("UPDATE tasks SET block_reason=?,revision=revision+1,updated_at=? WHERE id=?",capability.reason,now(),task.id);db.event(task.id,'runtime.waiting_refresh',{message:'任务等待原因已按当前执行配置刷新',reason:capability.reason});}}});};
   wakeReadyTasks();
   const app = Fastify({ bodyLimit: 2_000_000, logger: false });
@@ -121,11 +127,13 @@ export async function createApp(overrides: Partial<Settings> = {}, startWorker =
   app.get('/api/hotlists/sources', async () => hotlists.status());
   app.get('/api/collection/schedule', async () => collection.get());
   app.put('/api/collection/schedule', async req => db.transaction(()=>{
-    const daily=collection.save(req.body),morning=morningCollection.get();
+    const daily=collection.save(req.body),morning=morningCollection.get(),evening=eveningCollection.get();
     morningCollection.save({enabled:daily.enabled,interval_minutes:morning.interval_minutes,cron:morning.cron,source_ids:daily.source_ids});
+    eveningCollection.save({enabled:daily.enabled,interval_minutes:evening.interval_minutes,cron:evening.cron,source_ids:daily.source_ids});
     return daily;
   }));
   app.get('/api/collection/morning-schedule', async () => morningCollection.get());
+  app.get('/api/collection/evening-schedule', async () => eveningCollection.get());
   app.get('/api/hotlists/snapshots/:id', async req => {const snapshot=db.one('SELECT * FROM hotlist_snapshots WHERE id=?',id(req)); if(!snapshot)throw Object.assign(new Error('快照不存在'),{statusCode:404});return {...snapshot,items:db.rows('SELECT * FROM hotlist_items WHERE snapshot_id=? ORDER BY rank',snapshot.id),response:db.one('SELECT * FROM hotlist_responses WHERE snapshot_id=?',snapshot.id)};});
   app.get('/api/tasks/:id/evidence/:evidence', async req => {const evidence=db.one('SELECT e.* FROM evidence e JOIN task_evidence te ON te.evidence_id=e.id WHERE te.task_id=? AND e.id=?',id(req),id(req,'evidence'));if(!evidence)throw Object.assign(new Error('证据不属于本任务'),{statusCode:404});return evidence;});
   app.get('/api/tasks/:id/visual',async req=>({assets:db.rows('SELECT * FROM visual_assets WHERE task_id=? ORDER BY created_at',id(req)).map(({frames_json,...r})=>({...r,frames:JSON.parse(frames_json)})),observations:db.rows('SELECT o.*,c.model,c.input_tokens,c.output_tokens,c.cache_tokens,c.cost FROM visual_observations o JOIN model_calls c ON c.id=o.call_id WHERE o.task_id=? ORDER BY o.created_at',id(req)).map(({observation_json,...r})=>({...r,observation:JSON.parse(observation_json)}))}));
@@ -214,7 +222,7 @@ export async function createApp(overrides: Partial<Settings> = {}, startWorker =
   });
   await app.register(fastifyStatic, { root: join(settings.root, 'web'), prefix: '/app/', decorateReply: false });
   await app.register(fastifyStatic, { root: join(settings.root, 'prototypes/diting-v5/dist'), prefix: '/prototype/', decorateReply: false });
-  app.addHook('onClose', async () => { await collection.stop(); await morningCollection.stop(); await monitoring.stop(); await notifications.stop(); await worker.stop(); await platformLogin.closeAll(); db.close(); });
-  if (startWorker) { worker.start(); monitoring.start(); notifications.start(); collection.start(); morningCollection.start(); }
+  app.addHook('onClose', async () => { await collection.stop(); await morningCollection.stop(); await eveningCollection.stop(); await monitoring.stop(); await notifications.stop(); await worker.stop(); await platformLogin.closeAll(); db.close(); });
+  if (startWorker) { worker.start(); monitoring.start(); notifications.start(); collection.start(); morningCollection.start(); eveningCollection.start(); }
   return { app, db, service, config, runtime, hotlists, worker, monitoring, notifications, platformLogin };
 }

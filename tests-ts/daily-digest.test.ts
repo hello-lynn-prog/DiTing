@@ -300,6 +300,19 @@ test('11:30 morning brief remains separate from the next-day final digest for th
   assert.equal(final.edition,'daily');assert.equal(final.coverage.succeeded,3);assert.notEqual(final.id,morning.id);assert.equal(service.get('2026-10-24')?.id,final.id);assert.equal(db.rows('SELECT id FROM model_calls').length,0);
  }finally{db.close();}
 });
+test('23:30 digest uses only same-day snapshots through collection completion and stays separate from the morning brief',async()=>{
+ const dir=mkdtempSync(join(tmpdir(),'diting-evening-edition-')),db=new Database(join(dir,'state.sqlite3'),ROOT);
+ try{
+  const snap=(stamp:string)=>db.run('INSERT INTO hotlist_snapshots VALUES(?,?,?,?,?,?,?,?)',uid('snap'),'dailyhot','baidu','succeeded',1,null,stamp,stamp);
+  snap('2026-10-24T08:05:00+08:00');snap('2026-10-24T11:35:00+08:00');snap('2026-10-24T23:35:00+08:00');snap('2026-10-24T23:55:00+08:00');snap('2026-10-25T00:05:00+08:00');
+  const service=new DailyDigest(db,()=>new Date('2026-10-24T23:40:00+08:00'));
+  const morning=await service.generateMorningBriefIfMissing({referenceTime:new Date('2026-10-24T11:30:00+08:00'),through:new Date('2026-10-24T11:40:00+08:00')}) as Row;
+  const final=await service.generateSameDayIfMissing({referenceTime:new Date('2026-10-24T23:30:00+08:00'),through:new Date('2026-10-24T23:40:00+08:00')}) as Row;
+  assert.equal(morning.coverage.succeeded,2);assert.equal(final.edition,'daily');assert.equal(final.date,'2026-10-24');assert.equal(final.coverage.succeeded,3);assert.notEqual(final.id,morning.id);assert.match(dailyDigestHtml(final),/榜单截至 23:40/);
+  assert.equal(await service.generateSameDayIfMissing({referenceTime:new Date('2026-10-24T23:30:00+08:00'),through:new Date('2026-10-24T23:50:00+08:00')}),null);
+  assert.equal(db.rows('SELECT id FROM model_calls').length,0);
+ }finally{db.close();}
+});
 test('an unpublished preview suppresses automatic catch-up to avoid unapproved generation',async()=>{
  const dir=mkdtempSync(join(tmpdir(),'diting-digest-preview-catchup-')),db=new Database(join(dir,'state.sqlite3'),ROOT);
  try{const snapshot=uid('snap');db.run('INSERT INTO hotlist_snapshots VALUES(?,?,?,?,?,?,?,?)',snapshot,'dailyhot','baidu','succeeded',1,null,'2026-10-20T10:00:00+08:00','2026-10-20T10:00:00+08:00');const digest=new DailyDigest(db,()=>new Date('2026-10-21T04:00:00.000Z'));digest.generate('2026-10-20',{notify:false});assert.equal(db.rows('SELECT id FROM daily_digests').length,1);await digest.generatePreviousDayIfMissing();assert.equal(db.rows('SELECT id FROM daily_digests').length,1);assert.equal(db.rows("SELECT id FROM events WHERE kind='daily_digest.completed'").length,0);}finally{db.close();}
