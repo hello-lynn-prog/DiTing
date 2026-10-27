@@ -3,6 +3,7 @@ import {hash,type Row} from './db.js';
 const generic=new Set(['AI','人工','智能','人工智能','科技','热点','新闻','今日','昨日','今天','最新','有关','相关','回应','消息','事件','关注','行业','企业','市场','中国','美国','宣布','表示','专家','公司','持续','发生','全球','发展','问题','大会','举行','正式','发布','网友','视频','热议','汽车','手机','产能','融资','财经','经济','政策','官方','平台','数据','用户','国际','调查','风险','活动','2026','如何','看待','怎么','第三季度','前三季度','季度','同比','环比','增长','下降','净利润','利润','业绩','财报','亿元','NBA','电影','即将','上映','安全','升级','版本','the','for','and','with','from','into','about','after','before','this','that','will','has','have','are','was','were']);
 export const dailyHeadline=(title:string)=>title.replace(/^(?:财联社|金十数据|界面新闻)\s*\d{1,2}月\d{1,2}日?(?:电|讯)[，,:：\s]*/,'').split(/[。！？\n]/,1)[0].slice(0,100).trim();
 const titleHead=dailyHeadline;
+for(const term of ['外交部','工信部','发改委','商务部','国务院','公安部','财政部','央行','官方','政府','部门','记者会','发言人'])generic.add(term);
 const segmenter=new Intl.Segmenter('zh',{granularity:'word'}),wordCache=new Map<string,string[]>();
 const words=(title:string)=>{const head=titleHead(title);const prior=wordCache.get(head);if(prior)return prior;const result=[...segmenter.segment(head.normalize('NFKC'))]
  .filter(piece=>piece.isWordLike).map(piece=>piece.segment.trim()).filter(word=>word.length>=2&&!generic.has(word)&&!/^[\d.]+$/.test(word));if(wordCache.size>50000)wordCache.clear();wordCache.set(head,result);return result;};
@@ -13,7 +14,9 @@ export function relatedDailyTheme(a:string,b:string){
  const overlap=shared(a,b);
  const left=titleHead(a).replace(/^[【\[#]+/,'').replace(/^(?:最新|快讯|突发)[：:]?/,'').trim(),right=titleHead(b).replace(/^[【\[#]+/,'').replace(/^(?:最新|快讯|突发)[：:]?/,'').trim();
  const sameLead=/^(?:如何看待|怎么看|为何|为什么|快讯|报道|消息|第三季度|前三季度)/.test(left)?null:[...left].slice(0,6).map((_,i)=>left.slice(0,i+1)).filter(prefix=>prefix.length>=4&&right.startsWith(prefix)).at(-1);
- return Boolean(sameLead)||overlap.some(word=>word.length>=3);
+ // A shared ministry or a generic opening phrase is not an event subject.
+ // Short brand names may still join when the specific opening is identical.
+ return overlap.some(word=>word.length>=3)||Boolean(sameLead&&overlap.some(word=>word.length>=2));
 }
 
 export function dailyAnchorGrade(title:string,excerpt:unknown){
@@ -23,7 +26,7 @@ export function dailyAnchorGrade(title:string,excerpt:unknown){
  const concrete=/[\u3400-\u9fffA-Za-z]{2,}(?:表示|称|发布|公布|宣布|决定|完成|启动|回应|通报|批准|下调|上调|增长|下降|签署|收购|融资|被查|举行|交付|发生|推出|开放|破获|起诉|判处|录得|达到|超过|投入|暂停|恢复|讨论|记录|介绍|说明)/.test(distinct);
  const compact=(value:string)=>value.normalize('NFKC').replace(/[\s\p{P}\p{S}]/gu,'');
  const titleText=compact(titleHead(title)),bodyText=compact(distinct);
- if(distinct.length>=50&&!shell&&concrete&&(new Set(shared(title,distinct)).size>=1||titleText.length>=6&&bodyText.includes(titleText)))return 'A' as const;
+ if(distinct.length>=35&&!shell&&concrete&&(new Set(shared(title,distinct)).size>=1||titleText.length>=6&&bodyText.includes(titleText)))return 'A' as const;
  if(/[\u3400-\u9fffA-Za-z]{2,}.{0,28}(?:发布|公布|宣布|回应|通报|批准|下调|上调|增长|下降|签署|收购|融资|被查|举行|交付|发生|推出|开放|破获|起诉|判处|达到|超过|暂停|恢复)/.test(title))return 'B' as const;
  return 'C' as const;
 }

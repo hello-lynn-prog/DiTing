@@ -1,5 +1,11 @@
 import {test} from 'node:test';import assert from 'node:assert/strict';import {mkdtempSync} from 'node:fs';import {join} from 'node:path';import {tmpdir} from 'node:os';
 import {Database,uid,encode,type Row} from '../packages/domain/db.js';import {ROOT} from '../apps/server/settings.js';import {DailyDigest,dailyDigestHtml,extractArticleText,extractFirecrawlExcerpt,rankTopicPages} from '../packages/domain/daily-digest.js';import {Configuration} from '../packages/domain/configuration.js';
+test('an archived card with a cross-topic source is withdrawn without changing the stored draft',()=>{
+ const url='https://news.example.org/2026-10-27/uk',excerpt='外交部发言人郭嘉昆表示，对英国边境执法人员长时间扣留中国公民提出严正交涉，将维护中国公民权益。';
+ const digest={date:'2026-10-27',title:'错误的姆巴佩分析',coverage:{succeeded:1,failed:0,sources:1,observations:1,topics:1},candidate_themes:[{id:'mbappe',title:'外交部回应姆巴佩发表不当言论',members:[],sources:['board'],source_count:1,best_rank:1}],sections:[{title:'今日总览',themes:[]},{title:'重点事件',items:[{id:'mbappe',title:'外交部回应姆巴佩发表不当言论',sources:['board'],source_count:1,best_rank:1}]},{title:'编辑总结',text:''}],source_pages:[{topic_id:'mbappe',url,excerpt,status:'insufficient_body',fetched_at:'2026-10-27T19:00:00+08:00'}],narrative_status:'model',narrative:{headline:'错误的姆巴佩分析',lead:'英国边境执法与姆巴佩事件同构。',overview:['英国边境执法与姆巴佩事件同构。'],events:[{topic_id:'mbappe',anchor_grade:'A',source_url:url,headline:'跨主题错绑',fact_summary:'错误事实',conclusion:'错误结论'}],trends:[],watch:[],editor_summary:['错误总结']}};
+ const html=dailyDigestHtml(digest);assert.match(html,/来源正文与选题不匹配/);assert.doesNotMatch(html,/英国边境执法与姆巴佩事件同构|跨主题错绑|错误结论/);
+ assert.equal(digest.narrative.events[0].headline,'跨主题错绑');
+});
 test('daily event cites the directly relevant story before an omnibus brief',()=>{
  const topic={title:'中兴通讯三季度净利同比增长'};
  const pages=[
@@ -202,7 +208,7 @@ test('daily digest extra page-fetch allowance is per-request and never changes t
   for(let i=0;i<10;i++)db.run('INSERT INTO acquisitions VALUES(?,?,?,?,?,?,?)',uid('acq'),null,'daily-digest:2026-10-22','page_fetch','failed',`prior attempt ${i}`,'2026-10-22T11:00:00+08:00');
   config.saveRoute({id:'keyword',provider:'test',base_url:'https://model.example/v1',model:'flash-test',enabled:true,protocol:'openai-completions',api_key:'test-secret',max_tokens:4096,rates:{input:0.8,cache:0.23,output:2.8}});
   const fetcher=(async(_url:any,init:any)=>{const table=JSON.parse(JSON.parse(init.body).messages[1].content),event=table.events[0],narrative={headline:'公共议题进入观察',lead:'一条公共议题进入观察。以下按公开材料整理。',overview:['日报归纳热榜记录与来源页信息。'],events:[{topic_id:event.topic_id,headline:event.title,fact_summary:'来源页介绍相关议题背景与后续安排。',why_hot:'',impact_path:'',conclusion:'可继续关注后续公开信息。'}],trends:[],watch:[],editor_summary:['本期据现有公开材料整理。']};return new Response(JSON.stringify({choices:[{message:{content:JSON.stringify(narrative)}}],usage:{prompt_tokens:500,completion_tokens:100,prompt_tokens_details:{cached_tokens:0}}}),{status:200,headers:{'content-type':'application/json'}});}) as typeof fetch;
-  const pageFetcher=(async(url:string)=>{pageFetches++;return{url,text:`<article><p>${'公开报道介绍相关议题的背景、参与方回应及后续安排。'.repeat(40)}</p></article>`,headers:{'content-type':'text/html; charset=utf-8'}};}) as any;
+  const pageFetcher=(async(url:string)=>{pageFetches++;return{url,text:`<article><p>${'测试公共议题发布后，公开报道介绍参与方回应及后续安排，并列出办理流程和资料查询渠道。'.repeat(40)}</p></article>`,headers:{'content-type':'text/html; charset=utf-8'}};}) as any;
   const service=new DailyDigest(db,()=>new Date('2026-10-22T12:00:00+08:00'),config,fetcher,pageFetcher);
   const ordinary=await service.generateNarrated('2026-10-22',{notify:false}) as any;assert.equal(pageFetches,0);assert.equal(ordinary.material_run.with_usable_body,0);
   const approved=await service.generateNarrated('2026-10-22',{notify:false,acceptanceTest:true,additionalPageFetches:6}) as any;assert.equal(pageFetches,1);assert.equal(approved.material_run.with_usable_body,1);assert.equal(db.rows("SELECT id FROM acquisitions WHERE source='daily-digest:2026-10-22' AND operation IN ('page_fetch','firecrawl_fetch')").length,11);

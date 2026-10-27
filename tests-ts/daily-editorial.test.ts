@@ -10,6 +10,10 @@ test('distinct events can share a specific subject without grouping every AI hea
  const themes=buildDailyThemes(events,[],(a,b)=>a===b);assert.equal(themes.length,2);assert.equal(themes[0].members.length,2);assert.equal(themes[0].source_count,2);
 });
 test('roundup and question boilerplate cannot merge unrelated daily subjects',()=>{
+ assert.equal(relatedDailyTheme('外交部回应姆巴佩发表不当言论','外交部对英国警方过度执法表示强烈不满'),false);
+ assert.equal(dailyAnchorGrade('外交部回应姆巴佩发表不当言论','外交部发言人郭嘉昆表示，对英国边境执法人员长时间扣留中国公民提出严正交涉，将维护公民权益。'),'B');
+ const ministries=buildDailyThemes([{id:'mbappe',title:'外交部回应姆巴佩发表不当言论',category:'国际与公共事务',sources:['a'],source_urls:[]},{id:'uk',title:'外交部对英国警方过度执法表示强烈不满',category:'国际与公共事务',sources:['b'],source_urls:[]}],[],(a,b)=>a===b);
+ assert.equal(ministries.length,2);
  assert.equal(relatedDailyTheme('如何看待周星驰新片开分','如何看待 iPhone Duo 订单取消'),false);
  assert.equal(relatedDailyTheme('21年NBA双杰，坎宁安和杰伦-格林的矛盾','NBA遭遇伤病潮：杰威重伤'),false);
  assert.equal(relatedDailyTheme('《流浪地球 3》电影全新物料即将发布','武侠电影《霹雳英雄》即将上映'),false);

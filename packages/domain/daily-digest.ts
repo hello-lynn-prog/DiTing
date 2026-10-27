@@ -5,7 +5,7 @@ import {assertPublicUrl,fetchText,plainText} from '../collectors/network.js';
 import {searchWeb,scrapePublicPage,firecrawlConfigured} from '../collectors/search.js';
 import {extractArticleText,verificationText} from '../collectors/article-extract.js';
 import {extractPageMetadata} from '../collectors/page-metadata.js';
-import {buildDailyThemes,dailyAnchorGrade,dailyHeadline,shortlistDailyThemes} from './daily-editorial.js';
+import {buildDailyThemes,dailyAnchorGrade,dailyHeadline,relatedDailyTheme,shortlistDailyThemes} from './daily-editorial.js';
 export {extractArticleText} from '../collectors/article-extract.js';
 const localDay=(v:string)=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(v));
 const digestSourceDate=(value:string)=>{const fromUrl=value.match(/(?:^|\/)(20\d{2})[/-]?([01]\d)[/-]?([0-3]\d)(?:\D|$)/);return fromUrl?`${fromUrl[1]}-${fromUrl[2]}-${fromUrl[3]}`:null;};
@@ -24,7 +24,9 @@ const topicKinds:[string,RegExp][]=[
 const topicKind=(title:string)=>topicKinds.find(([,pattern])=>pattern.test(title))?.[0]||'综合观察';
 const hasUsableArticleMaterial=(text:unknown)=>typeof text==='string'&&text.trim().length>=800&&!verificationText.test(text);
 const hasBriefArticleMaterial=(text:unknown)=>typeof text==='string'&&text.trim().length>=100&&!verificationText.test(text);
-const eventAnchorGrade=(event:Row,body:unknown)=>{const titles=[String(event.title||''),...(event.members||[]).map((member:Row)=>String(member.title||''))];return titles.some(title=>dailyAnchorGrade(title,body)==='A')?'A':titles.some(title=>dailyAnchorGrade(title,body)==='B')?'B':'C';};
+// A page must substantiate the representative subject. Matching one unrelated
+// member of an over-broad historical cluster must never upgrade the whole card.
+const eventAnchorGrade=(event:Row,body:unknown)=>dailyAnchorGrade(String(event.title||''),body);
 const leadingExcerpt=extractArticleText;
 /** Firecrawl returns Markdown, not HTML. Stop before recommendation/comment chrome. */
 export function extractFirecrawlExcerpt(markdown:string){
@@ -388,8 +390,8 @@ export class DailyDigest {
    const preflight={date:d.date,coverage:d.coverage,events:selected.map((i:Row)=>({topic_id:i.id,title:i.title,members:i.members?.slice(0,6).map((m:Row)=>({title:dailyHeadline(String(m.title)),url:m.url})),source_count:i.source_count,best_rank:i.best_rank,continuation:i.continuation,sources:i.sources,url:i.url})),trends:watchCandidates.filter((t:Row)=>t.continuation_pairs?.length).slice(0,4),watch:watchCandidates.slice(0,6)},maxModelReserve=calculateCost(Math.ceil((JSON.stringify(preflight).length+selected.length*3000+4500)/0.8),4096,0,route.rates);if(maxModelReserve===null||maxSearchReserve+maxModelReserve+editorial.cost>budgetCap)return{narrative_status:'fallback',narrative_fallback_reason:`预算保险丝拦截：选题、最多6次标题搜索及成稿预留合计超过¥${budgetCap.toFixed(2)}`,editorial_selection:editorial.selection,material_run:{selected_events:0,budget_cap:budgetCap},model:{selection_cost:editorial.actualCost,selection_budget_charge:editorial.cost,selection_reserve:editorial.reserve}};
   const primaryPages=await this.sourcePages(d.date,selected,options);
   const expanded=await this.expandTopicSources(d.date,selected,primaryPages,options);
-  const pages=[...primaryPages,...expanded.pages],pageByTopic=new Map(selected.map((event:Row)=>[event.id,rankTopicPages(event,pages.filter((page:Row)=>page.topic_id===event.id&&(hasBriefArticleMaterial(page.excerpt)||eventAnchorGrade(event,page.excerpt)==='A')))[0]||primaryPages.find((page:Row)=>page.topic_id===event.id)]));
-   const events=selected.map((i:Row)=>{const page=pageByTopic.get(i.id) as Row|undefined,related=rankTopicPages(i,pages.filter((p:Row)=>p.topic_id===i.id&&(hasBriefArticleMaterial(p.excerpt)||eventAnchorGrade(i,p.excerpt)==='A'))).slice(0,3),body=related.map((p:Row,index:number)=>`【来源${index+1}：${p.final_url||p.url}】${String(p.excerpt||'').slice(0,index?800:1400)}`).join('\n');return{topic_id:i.id,title:i.title,members:(i.members||[]).slice(0,6).map((m:Row)=>({title:dailyHeadline(String(m.title)),url:m.url})),source_count:i.source_count,best_rank:i.best_rank,continuation:i.continuation,continuation_pairs:(i.continuation_pairs||[]).slice(0,3),sources:i.sources,url:i.url||null,source_urls:(i.source_urls||[]).slice(0,6),source_status:page?.status||'no_source_url',anchor_grade:eventAnchorGrade(i,body),source_excerpt:body,source_brief:'',source_hash:page?.content_hash||null,source_fetched_at:page?.fetched_at||null,source_method:page?.method||null,research_source_urls:related.map((p:Row)=>p.final_url||p.url)};});
+  const pages=[...primaryPages,...expanded.pages],pageByTopic=new Map(selected.map((event:Row)=>[event.id,rankTopicPages(event,pages.filter((page:Row)=>page.topic_id===event.id&&eventAnchorGrade(event,page.excerpt)==='A'))[0]||primaryPages.find((page:Row)=>page.topic_id===event.id)]));
+   const events=selected.map((i:Row)=>{const page=pageByTopic.get(i.id) as Row|undefined,related=rankTopicPages(i,pages.filter((p:Row)=>p.topic_id===i.id&&eventAnchorGrade(i,p.excerpt)==='A')).slice(0,3),body=related.map((p:Row,index:number)=>`【来源${index+1}：${p.final_url||p.url}】${String(p.excerpt||'').slice(0,index?800:1400)}`).join('\n');return{topic_id:i.id,title:i.title,members:(i.members||[]).slice(0,6).map((m:Row)=>({title:dailyHeadline(String(m.title)),url:m.url})),source_count:i.source_count,best_rank:i.best_rank,continuation:i.continuation,continuation_pairs:(i.continuation_pairs||[]).slice(0,3),sources:i.sources,url:i.url||null,source_urls:(i.source_urls||[]).slice(0,6),source_status:page?.status||'no_source_url',anchor_grade:eventAnchorGrade(i,body),source_excerpt:body,source_brief:'',source_hash:page?.content_hash||null,source_fetched_at:page?.fetched_at||null,source_method:page?.method||null,research_source_urls:related.map((p:Row)=>p.final_url||p.url)};});
    const all=watchCandidates.filter((t:Row)=>t.continuation_pairs?.length).slice(0,4).map((i:Row)=>({topic_id:i.id,title:i.title,source_count:i.source_count,best_rank:i.best_rank,trend:i.continuation,continuation_pairs:i.continuation_pairs}));
    const watch=watchCandidates.filter((t:Row)=>!all.some((a:Row)=>a.topic_id===t.id)).slice(0,6).map((i:Row)=>({topic_id:i.id,title:i.title,source_count:i.source_count,best_rank:i.best_rank,trend:i.continuation}));
    const input={date:d.date,edition:d.edition||'daily',through:d.through||null,coverage:{successful_snapshots:d.coverage.succeeded,failed_snapshots:d.coverage.failed,board_entries:d.coverage.sources,observations:d.coverage.observations,unique_topics:d.coverage.topics},editorial_selection:editorial.selection,events,trends:all,watch};
@@ -446,6 +448,9 @@ export class DailyDigest {
    const adjustments=generated.model?.quality_adjustments||[];
    if(adjustments.some((a:Row)=>['标题','导语','事件卡降级'].includes(a.field)))qualityReasons.push('核心栏目或事件卡降级');
    if((generated.material_run?.anchor_A||0)<1)qualityReasons.push('没有取得可用的来源正文事实');
+   const selectedById=new Map((base.candidate_themes||[]).map((theme:Row)=>[theme.id,theme]));
+   if((generated.narrative?.events||[]).some((event:Row)=>{const theme=selectedById.get(event.topic_id) as Row|undefined;return theme&&(theme.members||[]).some((member:Row)=>!relatedDailyTheme(String(theme.title),String(member.title))&&!sameEventTitle(String(theme.title),String(member.title)));}))qualityReasons.push('选题聚类混入不同事件');
+   if((generated.narrative?.events||[]).some((event:Row)=>{if(event.anchor_grade!=='A')return false;const theme=selectedById.get(event.topic_id) as Row|undefined,page=(generated.source_pages||[] as Row[]).find((p:Row)=>p.url===event.source_url||p.final_url===event.source_url) as Row|undefined;return !theme||!page||eventAnchorGrade(theme,page.excerpt)!=='A';}))qualityReasons.push('来源正文与选题不匹配');
    const analyzed=(generated.narrative?.events||[]).filter((e:Row)=>e.why_hot||e.impact_path);
    if(generated.narrative&&!analyzed.length)qualityReasons.push('事件分析全部为空');
    const qualityStatus=qualityReasons.length?'needs_review':'passed',preview=options.notify===false||qualityStatus!=='passed';
@@ -462,9 +467,11 @@ export function dailyDigestHtml(d:Row){
  const esc=(x:unknown)=>String(x??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
  const sections=(d.sections||[]).map((s:Row)=>({...s})),reportDate=String(d.date||''),sourceStart=validDate(reportDate)?localDay(new Date(Date.parse(`${reportDate}T00:00:00+08:00`)-7*86400000).toISOString()):reportDate;
   const staleBoundPages=(d.source_pages||[]).filter((p:Row)=>!sourcePageDatesInWindow(p,sourceStart,reportDate)&&typeof p.excerpt==='string'&&p.excerpt.trim().length>0&&!verificationText.test(p.excerpt));
+ const mismatchedEvents=(d.narrative?.events||[]).filter((event:Row)=>{if(event.anchor_grade!=='A')return false;const theme=(d.candidate_themes||[]).find((candidate:Row)=>candidate.id===event.topic_id),page=(d.source_pages||[]).find((p:Row)=>p.url===event.source_url||p.final_url===event.source_url);return !theme||!page||eventAnchorGrade(theme,page.excerpt)!=='A';});
+ if(mismatchedEvents.length)d={...d,title:`${reportDate} 日报（来源待复核）`,quality_status:'needs_review',quality_reasons:[...(d.quality_reasons||[]),'来源正文与选题不匹配，模型叙事已撤下']};
  // Keep the stored draft and its audit trail intact, but do not publish prose
  // from a digest whose cited source is explicitly dated outside its window.
- const narrative=staleBoundPages.length?null:d.narrative||null;
+ const narrative=staleBoundPages.length||mismatchedEvents.length?null:d.narrative||null;
  const lead=sections.find((s:Row)=>s.title==='重点事件'),overview=sections.find((s:Row)=>s.title==='今日总览');
  const headlines=(lead?.items||[]).slice(0,3).map((i:Row)=>`“${i.title}”`);
   const overviewText=headlines.length?`${d.date}值得关注的事件包括${headlines.join('、')}。来源正文不足的议题仅提供阅读线索，具体变化请查看原文。`:`${d.date}没有可供编辑归纳的成功榜单样本。`;
