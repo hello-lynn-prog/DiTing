@@ -1,12 +1,12 @@
 # 第三方来源与许可说明
 
-DiTing 的业务控制层和报告管线在本项目中实现；TS 采集器包含按 NewsNow、DailyHotApi 的 MIT 源码改写的取数与解析逻辑。两份完整 MIT 许可和版权声明分别保留在 `assets/licenses/NewsNow-MIT.txt`、`assets/licenses/DailyHotApi-MIT.txt`。这不表示把这些项目的服务端、UI 或全部代码打包进本项目。逐项迁入记录见 `docs/热榜原型清单与源码迁入说明-2026-10-18.md`。
+DiTing 的业务控制层和报告管线在本项目中实现；TS 采集器包含按 NewsNow、DailyHotApi 的 MIT 源码改写的取数与解析逻辑。两份完整 MIT 许可和版权声明分别保留在 `assets/licenses/NewsNow-MIT.txt`、`assets/licenses/DailyHotApi-MIT.txt`。这不表示把这些项目的服务端、UI 或全部代码打包进本项目。来源哈希清单见 `docs/source-inventory-2026-10-18.json`。
 
 | 项目 | 本地用途 | 上游与许可 |
 | --- | --- | --- |
 | DeepSeek Harness | 通过本机 SDK 运行 Agent；代码位于项目外的本地目录，本仓库不复制 dsh runtime | [deepseek-harness](https://github.com/deepseek-ai/deepseek-harness)，本机源码 LICENSE 为 MIT；运行需要用户自行取得并构建 |
 | NewsNow | 知乎、百度原始平台端点与字段映射参考，TypeScript 解析器位于 `packages/collectors/hotlists.ts` | [newsnext/newsnow](https://github.com/newsnext/newsnow)，上游标注 MIT。DiTing 独立实现网络层、归一化、快照与审计逻辑；本轮按固定源码改写新增取数逻辑，分发时保留上述 MIT 许可文本和版权说明 |
-| DailyHotApi | 27 个展示频道、扩展源端点和响应字段形态参考，TypeScript 原生解析器位于 `packages/collectors/hotlists.ts`、`dailyhot-extended.ts` | [imsyy/DailyHotApi](https://github.com/imsyy/DailyHotApi)，上游标注 MIT。DiTing 独立实现采集生命周期、标准化与证据保存；当前合并目录含 52 个实际入口；原型 27 频道对应 25 个来源，扩展项另列，不包含 DailyHotApi 服务端或缓存服务 |
+| DailyHotApi | 27 个展示频道、扩展源端点和响应字段形态参考，TypeScript 原生解析器位于 `packages/collectors/hotlists.ts`、`dailyhot-extended.ts` | [imsyy/DailyHotApi](https://github.com/imsyy/DailyHotApi)，上游标注 MIT。DiTing 独立实现采集生命周期、标准化与证据保存；原型 27 频道对应 25 个来源，扩展项另列，不包含 DailyHotApi 服务端或缓存服务 |
 | Playwright | 本地平台扫码登录、持久浏览器配置 | 安装包许可为 Apache-2.0；浏览器使用本机 Microsoft Edge，浏览器本身的许可独立适用 |
 | ffmpeg-static 5.3.0 | 通过独立进程解码已归档图片、提取视频输入帧 | 安装包声明 GPL-3.0-or-later；其二进制和许可由依赖包提供，`node_modules/` 不提交。发布含该依赖或二进制的安装包时须同时处理其适用许可和来源义务；不能把该依赖称为 MIT |
 | BettaFish | 调查职责和报告形态参考 | [666ghj/BettaFish](https://github.com/666ghj/BettaFish)。本仓库 `assets/report-templates/` 仍保存六份用户快照原样模板与原许可证材料；2026-10-20 起，用户授权的本地运行时读取六份原模板，冻结主章和完整子节；中文成稿与渲染由 TS 管线执行。原模板内容未改写。其随附许可证文件包含多种许可证文本与额外非商业条款，不能用单一宽松许可概括；在逐项完成版权/许可核对前，不要把该目录或模板复制到公开分发包。 |

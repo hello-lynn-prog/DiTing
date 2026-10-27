@@ -16,6 +16,9 @@ node_modules/
 prototypes/diting-v4/
 prototypes/DiTing-控制台-v4.zip
 
+# Local planning, audit and test records. Keep the attribution inventory tracked.
+/docs/
+
 
 # Runtime template assets retain their original provenance and complete license bundle.
 # No third-party assets are published by the build or test commands.
