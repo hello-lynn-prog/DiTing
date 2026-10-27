@@ -119,6 +119,19 @@ export const sources: Source[] = [
   ...dailyHotExtendedSources(item),
 ];
 
+// These endpoints currently return platform refusals or challenge pages from this host.
+// Keep their parsers, status and archived failures available for an explicit retest.
+// They are excluded only from an unqualified automatic/manual "collect all" run.
+export const defaultPausedSources = new Map<string,string>([
+  ['dailyhot:weibo','公开热搜接口 HTTP 403'],
+  ['newsnow:xueqiu','公开热帖接口返回验证页'],
+  ['dailyhot:douyin','平台风控拒绝访问（4031）'],
+  ['dailyhot:kuaishou','平台未返回公开热榜（结果码 2）'],
+  ['dailyhot:linuxdo','原站 RSS 返回 HTTP 403'],
+  ['dailyhot:hostloc','原站 RSS 返回验证页'],
+]);
+export const defaultCollectionSources=sources.filter(s=>!defaultPausedSources.has(`${s.provider}:${s.id}`));
+
 export async function fetchSourceText(source: Source, fetcher = fetchText): Promise<string> {
   let request = source.request,targetUrl=source.url;
   if(source.id==='hackernews'){
@@ -145,6 +158,12 @@ export async function fetchSourceText(source: Source, fetcher = fetchText): Prom
   if (source.id === '36kr') request = { ...request, body: JSON.stringify({ partner_id: 'wap', param: { siteId: 1, platformId: 2 }, timestamp: Date.now() }) };
   try{return (await fetcher(targetUrl, undefined, true, request)).text;}
   catch(error){
+    // CSDN occasionally returns an origin-side 521, then succeeds immediately.
+    // Retry that exact public endpoint once; platform denials remain failures.
+    if(source.id==='csdn'&&error instanceof Error&&error.message==='来源 HTTP 521'){
+      await new Promise(resolve=>setTimeout(resolve,400));
+      return (await fetcher(targetUrl,undefined,true,request)).text;
+    }
     const proxy=process.env.DITING_HOTLIST_PROXY_URL;
     const transient=error instanceof Error&&(error.name==='AbortError'||error.name==='TimeoutError'||/aborted|timed?\s*out|ETIMEDOUT|ENETUNREACH|ECONNRESET/i.test(error.message));
     // Only retry the fixed, public origins that have shown local connection
@@ -160,7 +179,7 @@ export class Hotlists {
   constructor(readonly db: Database, readonly fetcher = fetchText) {}
   collect(provider = 'both', ids?: string[] | Record<string, string[]>) {
     if (!['both', 'newsnow', 'dailyhot'].includes(provider)) throw new Error('未知采集实现');
-    const selected = sources.filter(s => (provider === 'both' || s.provider === provider) && (!ids || (Array.isArray(ids) ? ids : ids[s.provider] || []).includes(s.id)));
+    const selected = (ids?sources:defaultCollectionSources).filter(s => (provider === 'both' || s.provider === provider) && (!ids || (Array.isArray(ids) ? ids : ids[s.provider] || []).includes(s.id)));
     if (!selected.length) throw new Error('所选来源尚未实现，不能声称已采集');
     const key = selected.map(s => `${s.provider}:${s.id}`).sort().join(','); if (this.pending.has(key)) return this.pending.get(key)!;
     const operation = (async()=>{const snapshots: Row[]=[];let cursor=0;await Promise.all(Array.from({length:Math.min(3,selected.length)},async()=>{while(cursor<selected.length){const source=selected[cursor++];snapshots.push(await this.collectOne(source));}}));return {snapshots,succeeded:snapshots.filter(s=>s.status==='succeeded').length,failed:snapshots.filter(s=>s.status==='failed').length};})().finally(() => { this.pending.delete(key); }); this.pending.set(key, operation); return operation;
@@ -180,7 +199,7 @@ export class Hotlists {
   latest(limit = 100): Row[] { return this.db.rows(`SELECT s.* FROM hotlist_snapshots s WHERE s.id=(SELECT n.id FROM hotlist_snapshots n WHERE n.provider=s.provider AND n.source_id=s.source_id ORDER BY created_at DESC,rowid DESC LIMIT 1) ORDER BY created_at DESC`).map(s => { const previous = this.db.rows(`SELECT item_key,rank FROM hotlist_items WHERE snapshot_id=(SELECT id FROM hotlist_snapshots WHERE provider=? AND source_id=? AND status='succeeded' AND id<>? ORDER BY created_at DESC,rowid DESC LIMIT 1)`, s.provider, s.source_id, s.id); return { ...s, items: this.db.rows('SELECT * FROM hotlist_items WHERE snapshot_id=? ORDER BY rank LIMIT ?', s.id, Math.min(Math.max(limit, 1), 500)).map(v => ({ ...v, raw: JSON.parse(v.raw_json), rank_change: previous.find(p => p.item_key === v.item_key) ? previous.find(p => p.item_key === v.item_key)!.rank - v.rank : null })) }; }); }
   status() {
     const snapshots=this.latest(200),latest=snapshots.map(({items,...s})=>s);
-    const configured=sources.map(s=>{const last=snapshots.find(v=>v.provider===s.provider&&v.source_id===s.id),metricCount=last?.items?.filter((v:Row)=>typeof v.heat_value==='number'||(typeof v.heat_label==='string'&&v.heat_label.length>0)).length??null;return {provider:s.provider,source_id:s.id,title:s.title,origin:new URL(s.url).origin,kind:s.kind,metric:s.metric,metric_count:metricCount,integration:'typescript_native_parser',scope:hotlistChannels.some(c=>c.source_id===s.id)?'v5_core':'extended',health:last?.status??'not_tested',latest_at:last?.created_at??null,item_count:last?.item_count??null,last_error:last?.error??null};});
+    const configured=sources.map(s=>{const last=snapshots.find(v=>v.provider===s.provider&&v.source_id===s.id),metricCount=last?.items?.filter((v:Row)=>typeof v.heat_value==='number'||(typeof v.heat_label==='string'&&v.heat_label.length>0)).length??null,pausedReason=defaultPausedSources.get(`${s.provider}:${s.id}`);return {provider:s.provider,source_id:s.id,title:s.title,origin:new URL(s.url).origin,kind:s.kind,metric:s.metric,metric_count:metricCount,integration:'typescript_native_parser',scope:hotlistChannels.some(c=>c.source_id===s.id)?'v5_core':'extended',default_enabled:!pausedReason,default_pause_reason:pausedReason||null,health:last?.status??'not_tested',latest_at:last?.created_at??null,item_count:last?.item_count??null,last_error:last?.error??null};});
     return {mode:'typescript_native_parsers',configured,channels:hotlistChannels.map(c=>({...configured.find(s=>s.source_id===c.source_id),...c})),latest};
   }
 }

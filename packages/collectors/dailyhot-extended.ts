@@ -8,7 +8,7 @@ function rows(value:unknown,name:string):Row[]{if(!Array.isArray(value))throw Er
 const count=(v:unknown)=>typeof v==='number'&&Number.isFinite(v)&&v>=0?v:typeof v==='string'&&/^\d+$/.test(v)?Number(v):null;
 export function dailyHotExtendedSources(item:Factory):Source[]{
   const json=(id:string,title:string,url:string,metric:string,parse:(data:Row)=>Item[]):Source=>({id,title,url,provider:'dailyhot',kind:'content_rank',metric,parse:text=>parse(JSON.parse(text))});
-  const rss=(id:string,title:string,url:string):Source=>({id,title,url,provider:'dailyhot',kind:'content_rank',metric:'RSS 最新/热门条目，未提供可比热度',parse:text=>{if(!/<rss\b|<rdf:RDF\b/i.test(text))throw Error(title+' 未返回 RSS，可能为验证页面');return [...text.matchAll(/<item\b[^>]*>([\s\S]*?)<\/item>/gi)].slice(0,100).map((m,i)=>{const field=(name:string)=>clean(m[1].match(new RegExp('<'+name+'(?:\\s[^>]*)?>([\\s\\S]*?)<\\/'+name+'>','i'))?.[1]),link=field('link');return item(field('guid')||link||i,field('title'),link,null,{guid:field('guid'),published_at:field('pubDate'),description:field('description')});});}});
+  const rss=(id:string,title:string,url:string,provider:Source['provider']='dailyhot'):Source=>({id,title,url,provider,kind:'content_rank',metric:provider==='newsnow'?'RSS 最新资讯，未提供平台热度':'RSS 最新/热门条目，未提供可比热度',parse:text=>{if(!/<rss\b|<rdf:RDF\b/i.test(text))throw Error(title+' 未返回 RSS，可能为验证页面');return [...text.matchAll(/<item\b[^>]*>([\s\S]*?)<\/item>/gi)].slice(0,100).map((m,i)=>{const field=(name:string)=>clean(m[1].match(new RegExp('<'+name+'(?:\\s[^>]*)?>([\\s\\S]*?)<\\/'+name+'>','i'))?.[1]),link=field('link'),url=/^https?:\/\//i.test(link)?new URL(link).href:null;return item(field('guid')||url||i,field('title'),url,null,{guid:field('guid'),published_at:field('pubDate'),description:field('description')});});}});
   return [
     json('juejin','稀土掘金文章榜','https://api.juejin.cn/content_api/v1/content/article_rank?category_id=1&type=hot','hot_rank 排序值仅保留原始字段，不作为可比热度',d=>rows(d.data,'掘金').map(v=>item(v.content?.content_id,v.content?.title,'https://juejin.cn/post/'+v.content?.content_id,null,v))),
     json('huxiu','虎嗅24小时','https://moment-api.huxiu.com/web-v3/moment/feed?platform=www','点赞数（非全网声量）',d=>rows(d.data?.moment_list?.datalist,'虎嗅').map(v=>item(v.object_id,clean(v.content).split('\n')[0],'https://www.huxiu.com/moment/'+v.object_id+'.html',count(v.count_info?.agree_num),v))),
@@ -22,5 +22,7 @@ export function dailyHotExtendedSources(item:Factory):Source[]{
     rss('nytimes','纽约时报世界新闻','https://rss.nytimes.com/services/xml/rss/nyt/World.xml'),
     rss('52pojie','吾爱破解热门主题','https://www.52pojie.cn/forum.php?mod=guide&view=hot&rss=1'),
     rss('hostloc','全球主机交流热门主题','https://hostloc.com/forum.php?mod=guide&view=hot&rss=1'),
+    rss('readhub','ReadHub 科技资讯','https://readhub.cn/rss','newsnow'),
+    rss('chinanews','中新网滚动新闻','https://www.chinanews.com.cn/rss/scroll-news.xml','newsnow'),
   ];
 }

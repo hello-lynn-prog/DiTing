@@ -1,13 +1,18 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { fetchSourceText, sources } from '../packages/collectors/hotlists.js';
+import { defaultCollectionSources, defaultPausedSources, fetchSourceText, sources } from '../packages/collectors/hotlists.js';
 import type { fetchText } from '../packages/collectors/network.js';
 import { hotlistChannels } from '../packages/collectors/hotlist-catalog.js';
 
 const source = (id: string) => { const value = sources.find(row => row.id === id); assert.ok(value, `source ${id}`); return value; };
 test('native directory keeps original channels plus distinct extended endpoints and declares each indicator scope', () => {
-  assert.equal(sources.length, 52);
-  assert.equal(new Set(sources.map(s => `${s.provider}:${s.id}`)).size, 52);
+  assert.equal(sources.length, 54);
+  assert.equal(new Set(sources.map(s => `${s.provider}:${s.id}`)).size, 54);
+  assert.equal(defaultPausedSources.size,6);
+  assert.equal(defaultCollectionSources.length,48);
+  assert.ok(defaultCollectionSources.every(s=>!defaultPausedSources.has(`${s.provider}:${s.id}`)));
+  assert.ok(['readhub','chinanews'].every(id=>defaultCollectionSources.some(s=>s.id===id)));
+  assert.ok(['weibo','xueqiu','douyin','kuaishou','linuxdo','hostloc'].every(id=>sources.some(s=>s.id===id)),'manual retest and historical provenance remain available');
   assert.equal(hotlistChannels.length,27);
   assert.equal(new Set(hotlistChannels.map(c=>c.source_id)).size,25);
   assert.ok(hotlistChannels.every(channel=>sources.some(s=>s.id===channel.source_id)), 'every original v5 channel maps to an implemented collector');
@@ -50,6 +55,17 @@ test('ported extension parsers preserve exact metric types, null heat and RSS so
   const feed=source('linuxdo').parse('<rss><channel><item><title><![CDATA[技术与 AI]]></title><link>https://linux.do/t/123</link><guid>123</guid><pubDate>Mon, 19 Oct 2026 08:00:00 GMT</pubDate></item></channel></rss>');assert.equal(feed[0].title,'技术与 AI');assert.equal(feed[0].heat,null);assert.equal(feed[0].raw.published_at,'Mon, 19 Oct 2026 08:00:00 GMT');assert.throws(()=>source('csdn').parse('{}'),/预期列表/);assert.throws(()=>source('linuxdo').parse('<html>challenge</html>'),/未返回 RSS/);
 });
 
+test('new original-site RSS feeds retain publication time and never invent heat',()=>{
+ const xml='<rss version="2.0"><channel><item><title><![CDATA[具体的新闻标题]]></title><link>https://example.org/news/1</link><guid>news-1</guid><pubDate>Tue, 27 Oct 2026 10:23:13 GMT</pubDate><description>有明确主体和动作的新闻摘要</description></item></channel></rss>';
+ for(const id of ['readhub','chinanews']){
+  const feed=source(id),items=feed.parse(xml);
+  assert.equal(feed.provider,'newsnow');assert.equal(feed.kind,'content_rank');assert.equal(items.length,1);
+  assert.equal(items[0].title,'具体的新闻标题');assert.equal(items[0].url,'https://example.org/news/1');
+  assert.equal(items[0].heat,null);assert.equal(items[0].raw.published_at,'Tue, 27 Oct 2026 10:23:13 GMT');
+  assert.throws(()=>feed.parse('<html>验证页面</html>'),/未返回 RSS/);
+ }
+});
+
 test('Douyin uses its short-lived CSRF cookie preflight before requesting the list endpoint', async () => {
   const calls: Array<{ url: string; init?: unknown }> = [];
   const fake = (async (url: string, _signal?: AbortSignal, _publicOnly?: boolean, init?: unknown) => { calls.push({ url, init }); return calls.length === 1 ? { text: '', url, headers: { 'set-cookie': ['passport_csrf_token=fixture-token; Path=/'] } } : { text: '{"ok":true}', url, headers: {} }; }) as typeof fetchText;
@@ -71,6 +87,15 @@ test('fixed public source retries local proxy only after a connection timeout',a
   const denied=(async()=>{throw Error('来源 HTTP 403');}) as typeof fetchText;
   await assert.rejects(fetchSourceText(source('weibo'),denied),/HTTP 403/);
  }finally{if(before===undefined)delete process.env.DITING_HOTLIST_PROXY_URL;else process.env.DITING_HOTLIST_PROXY_URL=before;}
+});
+
+test('CSDN retries a transient origin 521 once without retrying platform refusals',async()=>{
+ let calls=0;
+ const fake=(async(url:string)=>{calls++;if(calls===1)throw Error('来源 HTTP 521');return{text:'{"data":[{"productId":"a","articleTitle":"测试文章","articleDetailUrl":"https://blog.csdn.net/a","hotRankScore":9}]}',url};}) as typeof fetchText;
+ const text=await fetchSourceText(source('csdn'),fake);
+ assert.equal(source('csdn').parse(text).length,1);assert.equal(calls,2);
+ const forbidden=(async()=>{calls++;throw Error('来源 HTTP 403');}) as typeof fetchText;
+ await assert.rejects(fetchSourceText(source('csdn'),forbidden),/403/);assert.equal(calls,3);
 });
 
 test('Hacker News collects ranked stories from its official API without the blocked HTML page', async () => {

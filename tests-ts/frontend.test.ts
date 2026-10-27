@@ -35,7 +35,7 @@ test('v5 local DOM mounts live navigation, persistent configuration and independ
     assert.ok(win.document.querySelector('#p-tpl').textContent.includes('人机共创模板'));
     win.eval("nativeTemplates('co_created')");assert.equal(win.document.querySelectorAll('#p-tpl .native-card').length,0);
     win.eval("nativePreviewTemplate('public-event')");assert.ok(win.document.querySelector('.v4-modal').textContent.includes('2.2 舆论发酵时间线'),'preview retains original subsection requirements');win.eval('v4CloseModal()');
-    assert.equal(win.eval('native.sources.configured.length'),52,'first completed paint must already contain the complete live source directory, without a manual second sync');
+    assert.equal(win.eval('native.sources.configured.length'),54,'first completed paint must already contain the complete live source directory, without a manual second sync');
     config.set('collection.schedule',{enabled:false,interval_minutes:15,cron:'',source_ids:[],next_run_at:null,last_run_at:null,last_status:'partial',last_result:{succeeded:2,failed:1},last_error:'1 个来源采集失败'});
     await win.eval('productSchedule()');const scheduleText=win.document.querySelector('.v4-modal').textContent;assert.ok(scheduleText.includes('部分来源失败'));assert.ok(scheduleText.includes('成功 2 / 失败 1'));assert.ok(scheduleText.includes('不重放历史榜单'));assert.ok(scheduleText.includes('11:30'));win.eval('v4CloseModal()');
     const disabled=await app.inject({method:'PUT',url:'/api/collection/schedule',headers:{'content-type':'application/json'},payload:{enabled:false,interval_minutes:60,cron:'0 8 * * *',source_ids:[]}});
@@ -107,7 +107,7 @@ test('v5 local DOM mounts live navigation, persistent configuration and independ
     assert.ok(win.document.querySelector('[data-notification-policy] input[name="event_signal.high_priority"]'));
     assert.equal(win.document.querySelectorAll('[data-notification-policy] input[name^="event_"]').length,2);
     win.eval('v4CloseModal();v4Go("conf")'); assert.ok(win.document.querySelector('[data-native-policy]'));
-    win.eval('v4Go("src")'); assert.ok(win.document.getElementById('p-src').textContent.includes('信源回答')); assert.ok(win.document.getElementById('p-src').textContent.includes('尚未实测')); assert.equal(win.document.querySelectorAll('#p-src .src-card').length, 52); assert.equal(win.document.querySelectorAll('#p-src .src-card button').length, 104);
+    win.eval('v4Go("src")'); assert.ok(win.document.getElementById('p-src').textContent.includes('信源回答')); assert.ok(win.document.getElementById('p-src').textContent.includes('尚未实测')); assert.ok(win.document.getElementById('p-src').textContent.includes('默认采集已暂停')); assert.equal(win.document.querySelectorAll('#p-src .src-card').length, 54); assert.equal(win.document.querySelectorAll('#p-src .src-card button').length, 108);assert.equal(win.document.querySelectorAll('#p-src .src-overview .src-stat b')[3].textContent,'6');
     win.eval('v4Go("tpl")'); assert.equal(win.document.querySelectorAll('#p-tpl .native-card').length, 6);
     const taskId=db.one('SELECT id FROM tasks ORDER BY created_at LIMIT 1')!.id,stamp='2026-10-18T00:00:00.000Z';
     db.run('INSERT INTO artifacts VALUES(?,?,?,?,?,?)','ui-forum',taskId,'forum','forum',JSON.stringify({summary:'明确的界面验收讨论成果',disagreements:['验收材料不代表真实舆情'],supplements:['补充原始通报']}),stamp);
