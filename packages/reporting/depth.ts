@@ -1,4 +1,4 @@
-/** BettaFish WORD_BUDGET targets about 40,000 characters; this is an editorial plan, not permission to invent. */
+/** Full-report target is an editorial plan, not permission to invent material. */
 export function narrativeProfile(text:string){
  const short=/(?:只要|仅需|仅输出|生成|写一份).{0,8}(?:简报|摘要)|简版报告/.test(text)&&!/不要[^。\n]{0,8}(?:简报|摘要|简版)/.test(text);
  const explicit=text.match(/(?:控制在|约|不少于|字数|写)(?:为|在|：|:|\s)*(\d{3,5})\s*字/),wan=text.match(/(?:控制在|约|不少于|字数|写)(?:为|在|：|:|\s)*(\d+(?:\.\d+)?)\s*万字/);

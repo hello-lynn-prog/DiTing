@@ -30,7 +30,7 @@ export function forumCycleState(db:Database,taskId:string,rootSessionId?:string)
   const scope=sessionClause(rootSessionId);
   const summaries=db.rows(`SELECT id,data_json,created_at FROM artifacts WHERE task_id=? AND kind='investigation_reflection'${scope} ORDER BY rowid`,...(rootSessionId?[taskId,rootSessionId]:[taskId]))
     .filter(row=>Number(JSON.parse(row.data_json).cycle||0)===cycle&&!consumed.has(row.id));
-  // BettaFish's Forum monitor opens a host turn after five engine summary
+  // The Forum monitor opens a host turn after five engine summaries.
   // messages. Here an investigation reflection is the persisted per-section
   // summary node, so ForumHost is triggered by the same rolling batch size.
   const cycleRound=summaries.length;
@@ -54,7 +54,7 @@ export function submitReflection(db: Database, taskId: string, role: Investigato
   const sectionId=String(input.section_id||'overall').trim().slice(0,100)||'overall';
   const history = reflectionHistory(db, taskId, role,rootSessionId,sectionId).filter(r=>Number(r.data.cycle||0)===cycle&&r.data.child_session_id===childSessionId);
   const policy=engineReflectionPolicy(db,taskId,role),reflectionLimit:Record<InvestigatorRole,number>={insight:3,media:2,query:2};reflectionLimit[role]=policy.maximum_summaries;
-  if (history.length >= reflectionLimit[role]) throw new Error(`本段已达到 BettaFish 对应的反思上限（${reflectionLimit[role]}）`);
+  if (history.length >= reflectionLimit[role]) throw new Error(`本段已达到本任务的反思上限（${reflectionLimit[role]}）`);
   const last = history.at(-1);
   if (last?.data.decision === 'stop') throw new Error('上轮已明确停止调查；如需补证应由主 Agent 发起新的补证轮');
   const latestReflectionEvent = Math.max(Number(followup.since||0),db.one("SELECT COALESCE(MAX(rowid),0) n FROM events WHERE task_id=? AND kind='investigation.reflection' AND json_extract(payload_json,'$.role')=? AND json_extract(payload_json,'$.child_session_id')=? AND COALESCE(json_extract(payload_json,'$.cycle'),0)=? AND json_extract(payload_json,'$.section_id')=?", taskId, role,childSessionId,cycle,sectionId)?.n || 0);
@@ -64,7 +64,7 @@ export function submitReflection(db: Database, taskId: string, role: Investigato
   if (!completedAfterLast) throw new Error('每轮反思都必须基于本轮实际完成的检索、抓取或本地语料查询');
   const round = history.length + 1;
   if(round<policy.minimum_summaries&&input.decision==='stop')throw Error(`不能提前交卷：本次是${role}第${round}/${policy.minimum_summaries}次总结（首轮1次+追加反思${policy.reflection_rounds}次）。本次总结尚未保存。下一步只将本次decision改为search_more、填入具体next_queries并重交同一section_id/assessment/findings，不必先重复检索；保存成功后再执行下一次不同补查。仅第${policy.minimum_summaries}次总结使用stop。`);
-  if (round === reflectionLimit[role] && input.decision !== 'stop') throw new Error(`本引擎达到 BettaFish 对应的反思上限（${reflectionLimit[role]}），请记录缺口并停止本轮`);
+  if (round === reflectionLimit[role] && input.decision !== 'stop') throw new Error(`本引擎达到本任务的反思上限（${reflectionLimit[role]}），请记录缺口并停止本轮`);
   const value = { cycle,section_id:sectionId,round, ...(policy.mode==='bettafish-fixed'?{initial_summary:round===1,reflection_index:round-1,reflection_policy:policy}:{}), assessment: String(input.assessment).trim(), findings: String(input.findings).trim(), decision: input.decision, next_queries: input.next_queries, child_session_id: childSessionId, root_session_id:rootSessionId||null, created_at: now() };
   const id = uid('reflection'); db.run('INSERT INTO artifacts VALUES(?,?,?,?,?,?)', id, taskId, 'investigation_reflection', role, encode(value), now());
   db.event(taskId, 'investigation.reflection', { message: `${role} 完成第 ${cycle+1} 次调查的第 ${sectionId} 段第 ${round} 轮证据反思`, role,cycle,section_id:sectionId,round, decision: value.decision, artifact_id: id, child_session_id: childSessionId });
@@ -77,7 +77,7 @@ export function assertReflectionGate(db: Database, taskId: string, role: Investi
   const cycle=childSessionId?Number(db.one("SELECT COUNT(*) n FROM events WHERE task_id=? AND kind='agent.followup' AND json_extract(payload_json,'$.child_session_id')=?",taskId,childSessionId)?.n||0):0;
   const history = reflectionHistory(db, taskId, role,rootSessionId,sectionId).filter(r=>Number(r.data.cycle||0)===cycle&&r.data.child_session_id===childSessionId);
   if (history.length < 1) throw new Error(`${role} 必须先完成至少一轮“检索/读取→证据反思”后才能提交调查结论`);
-  const policy=engineReflectionPolicy(db,taskId,role);if(history.length<policy.minimum_summaries)throw Error(`${role} 尚未完成BettaFish首轮总结与${policy.reflection_rounds}轮反思，不能提交调查结论`);
+  const policy=engineReflectionPolicy(db,taskId,role);if(history.length<policy.minimum_summaries)throw Error(`${role} 尚未完成首轮总结与${policy.reflection_rounds}轮反思，不能提交调查结论`);
   if (history.at(-1)?.data.decision !== 'stop') throw new Error(`${role} 最后一轮反思必须明确判断停止条件；如需继续，先执行补充查询再反思`);
 }
 
@@ -100,7 +100,7 @@ export function postForumMessage(db: Database, taskId: string, input: Row, child
   const round = (db.one("SELECT COALESCE(MAX(CAST(json_extract(data_json,'$.round') AS INTEGER)),0) n FROM artifacts WHERE task_id=? AND kind='forum'", taskId)?.n || 0) + 1;
   const rootSessionId=currentRoot(db,taskId,childSessionId);
   const state=forumCycleState(db,taskId,rootSessionId);
-  if(!state.ready)throw new Error(`ForumHost 按 BettaFish 滚动机制需累计5条新引擎摘要；当前只有${state.cycleRound}条`);
+  if(!state.ready)throw new Error(`ForumHost 按 滚动机制需累计5条新引擎摘要；当前只有${state.cycleRound}条`);
   const value = { ...input, round,cycle:state.cycle,cycle_round:state.cycleRound,root_session_id:rootSessionId||null,
     input_evidence_revision:db.one('SELECT evidence_revision FROM tasks WHERE id=?',taskId)!.evidence_revision,
     source_reflection_ids:state.pending_summary_ids,

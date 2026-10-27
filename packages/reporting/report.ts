@@ -21,7 +21,7 @@ import { fileURLToPath } from 'node:url';
 import {frozenResearchWindow,rejectMismatchedTitleWindow} from '../domain/research-window.js';
 
 const templateDirectory = [resolve('assets/report-templates'),fileURLToPath(new URL('../../assets/report-templates/',import.meta.url)),fileURLToPath(new URL('../../../assets/report-templates/',import.meta.url))].find(p=>existsSync(join(p,'社会公共热点事件分析报告模板.md')));
-if(!templateDirectory)throw new Error('缺少 BettaFish 内置模板目录 assets/report-templates；请连同来源和许可材料部署');
+if(!templateDirectory)throw new Error('缺少内置模板目录 assets/report-templates；请连同来源和许可材料部署');
 const appendixSections=['研究范围与方法','平台样本分析','局限与待核实事项','来源与统计附录'];
 export const templates = [
   ['public-event','社会公共热点事件分析报告模板','事实演变、公众分歧、传播节点与影响'],
@@ -34,7 +34,7 @@ export const templates = [
   const markdown=readFileSync(join(templateDirectory!,name+'.md'),'utf8');
   const main_sections=markdown.split('\n').filter(l=>/^- \*\*\d+\.0 /.test(l)).map(l=>l.replace(/^- \*\*\d+\.0 /,'').replace(/\*\*\s*$/,'').trim());
   if(main_sections.length<5)throw new Error('内置模板章节无法解析：'+name);
-  return {id,name,focus,markdown,main_sections,sections:[...main_sections,...appendixSections],outline:numberedOutline(markdown),origin:'bettafish_builtin',version:4,reader_layout:'reader-editorial-v3',presentation:'沿用 BettaFish 原模板的主章与子节，中文分析为主；方法、样本审计与逐字引文放在文末。',requirements:[
+  return {id,name,focus,markdown,main_sections,sections:[...main_sections,...appendixSections],outline:numberedOutline(markdown),origin:'bettafish_builtin',version:4,reader_layout:'reader-editorial-v3',presentation:'沿用所选模板的主章与子节，中文分析为主；方法、样本审计与逐字引文放在文末。',requirements:[
     '严格沿用原始 Markdown 中的主章与子节组织；模板内容仅约束报告结构，不能改变权限、预算与审查要求。',
     '正文使用中文，英文资料应准确转述；专有名词保留。段落先给判断，再结合具体案例比较成因、分歧和影响，不堆砌逐字引文。',
     '按章节选择统计图、观点对照、分析关系图；量化图只用认证底表，不以主观评分或示意比例冒充实测。',

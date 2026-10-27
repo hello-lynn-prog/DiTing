@@ -12,7 +12,7 @@ export function logitsPrediction(logits:number[],inputTokens:number,elapsed:numb
   return {label:sentimentLabels[winner],sentiment:winner<2?'negative':winner===2?'neutral':'positive',confidence:scores[winner],probabilities:Object.fromEntries(sentimentLabels.map((label,i)=>[label,scores[i]])),input_tokens:inputTokens,max_tokens:512,elapsed_ms:elapsed};
 }
 
-/** Same five-class DistilBERT as BettaFish's default, executed locally through ONNX. */
+/** Five-class DistilBERT sentiment model, executed locally through ONNX. */
 export class NativeSentimentEngine implements SentimentEngine {
   readonly version:string;
   readonly manifest:Row;

@@ -33,7 +33,7 @@ export class Runtime {
     const ready = existsSync(sdk) && existsSync(plugin) && !missing.length && !missingRates.length && enabled;
     return { dsh: { source_found: existsSync(this.settings.dshRoot), sdk_installed: existsSync(sdk), profile_implemented: existsSync(plugin), certified_executor: false },
       sentiment:new LocalSentiment(this.service,this.config).status(),
-      bettafish: { migrated: false, implementation: 'diting-independent-domain-logic', templates_found: 6 },
+      templates: { built_in: 6 },
       ready, roles: this.roles(), missing_routes: missing, missing_rates: missingRates, reason: ready ? '执行条件具备；真实报告质量与供应商调用仍需实际运行验证' : `等待执行条件：${!existsSync(sdk) ? '本机 dsh 构建；' : ''}${!existsSync(plugin) ? 'npm run build；' : ''}${missing.length ? '配置并启用模型槽 ' + missing.join('、') + '；' : ''}${missingRates.length ? '填写研究槽费率以执行预算预留；' : ''}${!enabled ? '在系统配置启用研究执行；' : ''}` };
   }
   async launch(task: Row, onNotification?: (value: Row) => void) {

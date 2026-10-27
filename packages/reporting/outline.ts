@@ -6,7 +6,7 @@ export function chineseChapter(n:number):string {
   return digits[Math.floor(n/10)]+'十'+(n%10?digits[n%10]:'');
 }
 
-/** Preserve native BettaFish numbered outline as structured data, including all subsections. */
+/** Preserve the selected template's numbered outline, including all subsections. */
 export function numberedOutline(markdown:string){
   const chapters:Row[]=[];
   for(const line of markdown.split('\n')){

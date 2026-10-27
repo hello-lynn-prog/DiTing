@@ -29,7 +29,7 @@ test('new native contracts require an initial summary and every source reflectio
   }
   assert.doesNotThrow(()=>assertReflectionGate(db,task,role,child,'section-1'));
   assert.throws(()=>assertReflectionGate(db,task,role,child,'section-2'),/至少一轮/);
-  assert.throws(()=>submitReflection(db,task,role,input,child),/达到 BettaFish/);
+  assert.throws(()=>submitReflection(db,task,role,input,child),/达到本任务的反思上限/);
   const history=db.rows("SELECT data_json FROM artifacts WHERE task_id=? AND role=? AND kind='investigation_reflection' ORDER BY rowid",task,role).map(r=>JSON.parse(r.data_json));
   assert.equal(history[0].initial_summary,true);assert.deepEqual(history.map(r=>r.reflection_index),Array.from({length:total},(_,i)=>i));
  }}finally{db.close();}
@@ -77,7 +77,7 @@ test('legacy adaptive caps stay frozen and ForumHost consumes only its rolling b
   const db=new Database(join(mkdtempSync(join(tmpdir(),'diting-third-reflection-')),'db.sqlite3'),ROOT),task=new Service(db).createTask('滚动主持批次',null);
   for(const role of ['media','query'] as const)for(let round=1;round<=2;round++)db.run('INSERT INTO artifacts VALUES(?,?,?,?,?,?)',uid('reflection'),task,'investigation_reflection',role,encode({cycle:0,section_id:'overall',round,decision:'search_more',child_session_id:`${role}-child`}),now());
   const input={section_id:'overall',assessment:'已完成本引擎源码设定的反思轮数。',findings:'现有材料仍有缺口，提交结论时应明确标注。',decision:'stop',next_queries:[]};
-  assert.throws(()=>submitReflection(db,task,'media',input,'media-child'),/达到 BettaFish 对应/);
+  assert.throws(()=>submitReflection(db,task,'media',input,'media-child'),/达到本任务的反思上限/);
   for(let i=0;i<5;i++)db.run('INSERT INTO artifacts VALUES(?,?,?,?,?,?)',uid('reflection'),task,'investigation_reflection',['insight','media','query'][i%3],encode({cycle:0,section_id:`s${i}`,round:1,findings:`摘要${i}`}),now());
   assert.equal(forumCycleState(db,task).ready,true);
   postForumMessage(db,task,{summary:'主持人基于当前收到的五条成员摘要归纳分歧与待补证事项。',disagreements:['当前资料对时间线仍有不同表述。'],supplements:['继续核对发布方原始信息。']},'forum-child');
