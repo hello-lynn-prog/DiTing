@@ -13,7 +13,14 @@ jobs:
         with:
           node-version: 24
           cache: npm
-      - run: npm ci
+      - name: Install dependencies (retry native binary download)
+        run: |
+          for attempt in 1 2 3; do
+            if npm ci; then exit 0; fi
+            if [ "$attempt" -eq 3 ]; then exit 1; fi
+            echo "Dependency download failed; retrying npm ci ($attempt/3)"
+            sleep 10
+          done
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
