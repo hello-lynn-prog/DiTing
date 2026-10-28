@@ -33,6 +33,7 @@ test('v5 local DOM mounts live navigation, persistent configuration and independ
     win.eval('nativeAgents()');const rolePanel=win.document.querySelector('#p-agent').textContent;for(const name of ['DiTing Ledger · 档案研析','DiTing Prism · 媒介取证','DiTing Trace · 新闻溯源'])assert.ok(rolePanel.includes(name));const oldName=rolePanel.search(/Insight|Media|Query|BettaFish/);assert.equal(oldName,-1,rolePanel.slice(Math.max(0,oldName-90),oldName+90));
     win.eval('nativeTemplates()');
     assert.equal(win.document.querySelectorAll('#p-tpl .native-card').length,6,'six built-in skeletons are selectable');
+    assert.equal(win.eval("native.templates.find(t=>t.id==='public-event').origin"),'system_builtin','the public template API uses a neutral origin label');
     assert.ok(win.document.querySelector('#p-tpl').textContent.includes('人机共创模板'));
     win.eval("nativeTemplates('co_created')");assert.equal(win.document.querySelectorAll('#p-tpl .native-card').length,0);
     win.eval("nativePreviewTemplate('public-event')");assert.ok(win.document.querySelector('.v4-modal').textContent.includes('2.2 舆论发酵时间线'),'preview retains original subsection requirements');win.eval('v4CloseModal()');
