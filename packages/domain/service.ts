@@ -21,7 +21,7 @@ export class Service {
   }
   createTask(title: string, session: string | null, parent: string | null = null, source = 'chat', templateSelection: {mode:'auto'|'user_import'|'co_created';template_id?:string} = {mode:'auto'}) {
     const config:Row = { ...scope(title, this.defaultBudget), executor: 'dsh', pipeline: 'diting-native-v1', config_version: 2,
-      engine_reflection_policy:{version:1,mode:'bettafish-fixed',initial_summaries:1,reflection_rounds:{insight:3,media:2,query:2}},
+      engine_reflection_policy:{version:1,mode:'diting-fixed',initial_summaries:1,reflection_rounds:{insight:3,media:2,query:2}},
       max_supplement_rounds: 3, max_searches:32, max_fetches:60, max_deep_requests:3, delivery: ['html', 'markdown', 'pdf'], gates: ['sufficiency', 'verifier', 'advocate'] };
     const custom=this.db.one("SELECT value_json FROM configuration WHERE key='templates.custom'");
     const options=[{id:'public-event',name:'公共热点事件研判'},{id:'brand',name:'品牌声誉研究'},{id:'competition',name:'行业竞争研究'},{id:'monitoring',name:'定期监测报告'},{id:'policy',name:'政策与行业研究'},{id:'crisis',name:'突发事件研究'},...(custom?JSON.parse(custom.value_json):[])];

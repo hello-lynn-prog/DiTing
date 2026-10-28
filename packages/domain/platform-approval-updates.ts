@@ -14,5 +14,5 @@ export function platformApprovalUpdates(db:Database,taskId:string){
 
 export function assertApprovedPlatformWorkFinished(db:Database,taskId:string){
  const pending=platformApprovalUpdates(db,taskId).filter(a=>a.state==='approved_not_started'||a.state==='running');
- if(pending.length)throw Error('已批准的平台取证尚未执行完：'+pending.map(a=>a.platform+' / '+a.state).join('、')+'。主Agent只让Media执行这些已批准批次；不要重做已完成的公开调查。实际失败或0样本须保留结果，不等于必须采到数据。');
+ if(pending.length)throw Error('已批准的平台取证尚未执行完：'+pending.map(a=>a.platform+' / '+a.state).join('、')+'。主Agent只让DiTing Prism执行这些已批准批次；不要重做已完成的公开调查。实际失败或0样本须保留结果，不等于必须采到数据。');
 }

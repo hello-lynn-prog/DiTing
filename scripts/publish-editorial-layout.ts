@@ -17,4 +17,4 @@ for(const title of builtin.sections.slice(builtin.main_sections.length)){const o
 const input={title:document.title,template_id:'policy',reader_version:2,sections,dataset_ids:document.dataset_ids,limitations:document.limitations,frameworks:document.frameworks};
 validateReport(db,source.task_id,input,resolveTemplate(db,'policy'));
 const result=await reviseReport(db,service,id,input,data,{upgradeTemplate:true});
-writeFileSync(join(data,'diagnostics','bettafish-layout-result.json'),encode(result));console.log(JSON.stringify(result));db.close();
+writeFileSync(join(data,'diagnostics','editorial-layout-result.json'),encode(result));console.log(JSON.stringify(result));db.close();

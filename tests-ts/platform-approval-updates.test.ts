@@ -2,7 +2,7 @@ import test from 'node:test';import assert from 'node:assert/strict';import {mkd
 import {Database,encode,now} from '../packages/domain/db.js';import {Service} from '../packages/domain/service.js';import {ROOT} from '../apps/server/settings.js';
 import {platformApprovalUpdates,assertApprovedPlatformWorkFinished} from '../packages/domain/platform-approval-updates.js';
 
-test('approval updates expose the exact allowed retry to Media without credentials and cannot omit unexecuted grants from review',()=>{
+test('approval updates expose the exact allowed retry to DiTing Prism without credentials and cannot omit unexecuted grants from review',()=>{
  const db=new Database(join(mkdtempSync(join(tmpdir(),'diting-approval-updates-')),'db.sqlite3'),ROOT),s=new Service(db),id=s.createTask('平台审批回流',null),run=s.claim('test')!;
  try{
   const scope={platform:'weibo',query:'人工智能',access_mode:'saved_session',session_version:'session_fixture',max_posts:10,comments_per_post:3,max_requests:15,max_pages:1,comment_pages:1,include_long_text:true,cookie:'MUST_NOT_ENTER_CONTEXT',key_ref:'PRIVATE_REFERENCE'};

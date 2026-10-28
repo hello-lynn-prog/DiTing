@@ -12,7 +12,7 @@ import {statistics} from '../packages/reporting/report.js';
 const cfg=settings(),qa=join(cfg.dataDir,'qa'),directory=resolve(process.argv[2]||join(qa,'session-live-MTyqWo')),inside=relative(qa,directory);
 if(!inside||inside.startsWith('..')||isAbsolute(inside))throw Error('Only an existing isolated data/qa capture directory is accepted');
 const db=new Database(join(directory,'diting.sqlite3'),ROOT),service=new Service(db),config=new Configuration(db,directory);
-const engine=new BatchedSentimentEngine(new NativeSentimentEngine(join(cfg.dataDir,'models/bettafish-multilingual-sentiment'))),sentiment=new LocalSentiment(service,config,engine);
+const engine=new BatchedSentimentEngine(new NativeSentimentEngine(join(cfg.dataDir,'models/multilingual-sentiment-v1'))),sentiment=new LocalSentiment(service,config,engine);
 const raw=()=>hash(encode({records:db.rows('SELECT * FROM content_records ORDER BY id'),pages:db.rows('SELECT * FROM crawl_pages ORDER BY id'),evidence:db.rows('SELECT * FROM evidence ORDER BY id')}));
 try{
  const before=raw(),summaries=[];

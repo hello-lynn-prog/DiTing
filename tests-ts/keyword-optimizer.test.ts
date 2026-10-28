@@ -9,7 +9,7 @@ import { Service } from '../packages/domain/service.js';
 import { optimizeKeywords } from '../packages/dsh-diting/keyword-optimizer.js';
 import { ROOT } from '../apps/server/settings.js';
 
-test('Insight query middleware uses the independent keyword model, validates variants, meters usage and caches repeats', async () => {
+test('DiTing Ledger query middleware uses the independent keyword model, validates variants, meters usage and caches repeats', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'diting-keywords-')), db = new Database(join(dir, 'state.sqlite3'), ROOT), config = new Configuration(db, dir), service = new Service(db), taskId = service.createTask('AI 行业争议', null);
   config.putSecret('fixture', 'local-test-key'); let calls = 0;
   const route = { id: 'keyword', protocol: 'openai-completions', provider: 'fixture', model: 'keyword-test', base_url: 'https://model.example/v1', enabled: true, key_ref: 'fixture', rates: { input: 1, cache: 0.1, output: 2 } };

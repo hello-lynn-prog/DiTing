@@ -55,7 +55,7 @@ const server = createServer(async (req, res) => {
   const stageGuide=body.tools?.find((t:any)=>t.function?.name==='report_stage')?.function?.parameters?.properties?.data?.description;
   if(names.includes('report_stage')){assert.ok(stageGuide?.includes('定量visual仅{kind:"dataset"'),'Report must see the dataset wire shape before attempting chapter generation');assert.ok(stageGuide?.includes('repair:{issues:[],actions:[]}'),'Report must see repair arrays in its actual provider schema');}
   const reflectionGuide=body.tools?.find((t:any)=>t.function?.name==='investigation_reflect')?.function;
-  if(reflectionGuide){assert.ok(reflectionGuide.description.includes('Insight共4次总结')&&reflectionGuide.description.includes('Media/Query共3次'),'model-facing tool counts must agree with the fixed loop guard');assert.ok(reflectionGuide.parameters.properties.findings.description.includes('800–1200'),'engine latest-state analysis must not be described as a short progress note');}
+  if(reflectionGuide){assert.ok(reflectionGuide.description.includes('DiTing Ledger共4次总结')&&reflectionGuide.description.includes('DiTing Prism/DiTing Trace共3次'),'model-facing tool counts must agree with the fixed loop guard');assert.ok(reflectionGuide.parameters.properties.findings.description.includes('800–1200'),'engine latest-state analysis must not be described as a short progress note');}
   const submission=body.tools?.find((t:any)=>t.function?.name==='investigation_submit')?.function?.parameters?.properties?.claims;
   if(submission){assert.equal(submission.type,'array');assert.equal(submission.items.properties.text.type,'string');assert.equal(submission.items.properties.references.type,'array');assert.deepEqual([...submission.items.required].sort(),['references','text']);}
   const system = body.messages.filter((m: any) => ['system','developer'].includes(m.role)).map((m: any) => m.content).join('\n');
@@ -137,7 +137,7 @@ config.set('model.queue',{max_concurrency:8,min_interval_ms:0}); // isolated syn
 if(sectionCheck)config.set('runtime.policy',{enabled:true,max_calls:300,max_minutes:10}); // 40 persisted source-backed summary nodes, synthetic tokens only
 fixtureDb = db;
 if(crawlSession)new PlatformAccounts(config).save('weibo',{enabled:true,cookie:sessionFixture});
-if(skillsCheck)new Skills(config).save({items:[...new Skills(config).items(),{id:'fixture-insight-only',name:'显式技能测试',description:'仅 Insight 可以读取的合成测试技能',roles:['insight'],content:'FIXTURE_SKILL_BODY_20261018。无真实新闻，提交证据缺口，不生成报告。',enabled:true}]});
+if(skillsCheck)new Skills(config).save({items:[...new Skills(config).items(),{id:'fixture-insight-only',name:'显式技能测试',description:'仅 DiTing Ledger 可以读取的合成测试技能',roles:['insight'],content:'FIXTURE_SKILL_BODY_20261018。无真实新闻，提交证据缺口，不生成报告。',enabled:true}]});
 if(mcpCheck||mcpFail){
   const fixturePath=join(dir,'fixture-mcp.mjs'),countPath=join(dir,'stdio-calls.txt');
   if(mcpStdio)writeFileSync(fixturePath,`import {createInterface} from 'node:readline';import {appendFileSync} from 'node:fs';
@@ -180,7 +180,7 @@ try {
   if(!crawlApproval&&!skillsCheck&&!mcpCheck)assert.ok(results.some(r => r.kind === 'investigation'), 'child must execute the domain submit tool');
   if(skillsCheck||mcpCheck){assert.equal(results.filter(r=>r.kind==='investigation').length,0,'permission-only checks cannot bypass investigation reflection gates');assert.ok(db.one("SELECT id FROM events WHERE kind='tool.failed' AND json_extract(payload_json,'$.tool')='investigation_submit'"));}
   if(skillsCheck){
-    assert.ok(!skillCatalogs.root.includes('fixture-insight-only'),'main catalog must not expose Insight-only skill');
+    assert.ok(!skillCatalogs.root.includes('fixture-insight-only'),'main catalog must not expose DiTing Ledger-only skill');
     assert.ok(skillCatalogs.insight.includes('fixture-insight-only'),'native child catalog must expose its authorized skill');
     assert.equal(db.one("SELECT COUNT(*) n FROM events WHERE kind='skill.denied'")!.n,1,'main cannot load an unauthorized skill even when calling it directly');
     assert.equal(db.one("SELECT COUNT(*) n FROM events WHERE kind='skill.loaded' AND json_extract(payload_json,'$.skill_id')='fixture-insight-only'")!.n,1,'native child must successfully load and audit the authorized body');

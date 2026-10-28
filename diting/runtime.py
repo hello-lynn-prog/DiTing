@@ -9,16 +9,16 @@ class RuntimeRegistry:
 
     def capabilities(self):
         root = self.settings.dsh_root
-        betta = self.settings.bettafish_root
+        reference = self.settings.template_reference_root
         sdk_available = importlib.util.find_spec("deepseek_harness") is not None
-        templates = list((betta / "ReportEngine" / "report_template").glob("*.md")) if betta else []
+        templates = list((reference / "report_template").glob("*.md")) if reference else []
         return {
             "dsh": {"source_found": bool(root and root.is_dir()), "sdk_installed": sdk_available,
                     "certified_executor": False},
-            "bettafish": {"source_found": bool(betta and (betta / "ReportEngine" / "agent.py").is_file()),
+            "template_reference": {"source_found": bool(reference and reference.is_dir()),
                           "templates_found": len(templates), "migrated": False},
             "ready": False,
-            "reason": "dsh 执行适配、舆情工具、BettaFish 三引擎与门禁尚未联合认证；任务已持久化，等待执行器接入。",
+            "reason": "旧版 Python 执行适配未联合认证；正式研究请使用 TypeScript 服务。",
         }
 
 

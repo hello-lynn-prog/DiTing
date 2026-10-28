@@ -26,7 +26,7 @@ export class VisualInvestigation {
   }
   private async execute(taskId:string,token:string,evidenceId:string,url:string,question:string,route:Row,signal:AbortSignal){
     const db=this.service.db,task=this.service.requireRun(taskId,token),policy=JSON.parse(task.config_json);
-    if(!route?.enabled||!route.rates||!this.config.hasSecret(route.key_ref))throw Error('Media 视觉模型路由、密钥和费率必须已配置');
+    if(!route?.enabled||!route.rates||!this.config.hasSecret(route.key_ref))throw Error('DiTing Prism 视觉模型路由、密钥和费率必须已配置');
     if(!db.one('SELECT evidence_id FROM task_evidence WHERE task_id=? AND evidence_id=?',taskId,evidenceId))throw Error('视觉来源页不属于本任务');
     const declarations=db.rows("SELECT data_json FROM artifacts WHERE task_id=? AND kind='media_assets'",taskId).map(a=>JSON.parse(a.data_json));
     if(!declarations.some(a=>a.evidence_id===evidenceId&&a.assets.some((x:Row)=>x.url===url)))throw Error('视觉素材必须先由本任务已归档来源页声明，不接受任意脱离来源的图片');

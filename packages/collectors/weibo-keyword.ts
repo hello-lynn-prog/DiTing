@@ -1,4 +1,4 @@
-/** Independent public endpoint parser; no copied MediaCrawler implementation, cookies, login or signing code. */
+/** Independent public endpoint parser; no copied platform crawler implementation, cookies, login or signing code. */
 import {z} from 'zod';
 import {Service} from '../domain/service.js';
 import type {Row} from '../domain/db.js';

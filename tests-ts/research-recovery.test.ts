@@ -110,7 +110,7 @@ test('reader report keeps provenance accessible without technical IDs in prose o
     assert.ok(rendered.html.includes('<details id="audit">')); assert.ok(rendered.html.includes('<table>'));
     assert.equal((rendered.html.match(/<svg /g) || []).length, 2, 'only real source and acquisition dimensions are graphed; cluster and word frequency stay empty when the sample is too small');
     const thin = { ...document, sections: document.sections.map(section => ({ ...section, text: `### ${section.title}只有一个初步判断\n\n针对${section.title}，目前的公开材料只支持有限观察。` })) };
-    assert.ok(validateReport(db,task,thin).editorial_warnings.some(w=>w.includes('38000 字')),'full report has BettaFish depth guidance without forcing padding/retry loops');
+    assert.ok(validateReport(db,task,thin).editorial_warnings.some(w=>w.includes('38000 字')),'full report has built-in depth guidance without forcing padding/retry loops');
     const processLeak = { ...document, sections: document.sections.map((section, i) => i ? section : { ...section, text: section.text + ' task_context 读取故障，不作为正式结论。' }) };
     assert.throws(() => validateReport(db, task, processLeak), /内部编号或执行说明/);
     document.sections[0].text += ' 内部编号 ' + evidence;

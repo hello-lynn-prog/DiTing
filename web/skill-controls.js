@@ -1,7 +1,7 @@
 /* dsh native instruction skills, managed separately from executable tools. */
 'use strict';
 const skillConsole={data:null};
-const skillRoleNames={main:'主 Agent',insight:'Insight',media:'Media',query:'Query',forum:'ForumHost',planner:'Planner',verifier:'Verifier',advocate:'Advocate',report:'Report'};
+const skillRoleNames={main:'主 Agent',insight:'DiTing Ledger · 档案研析',media:'DiTing Prism · 媒介取证',query:'DiTing Trace · 新闻溯源',forum:'ForumHost',planner:'Planner',verifier:'Verifier',advocate:'Advocate',report:'Report'};
 const previousExtensions=nativeExtensions;
 nativeExtensions=function(id){if(id==='skill')return skillRender();return previousExtensions(id);};
 async function skillRender(){

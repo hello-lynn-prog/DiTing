@@ -8,7 +8,7 @@ import {Service} from '../packages/domain/service.js';
 import {Configuration} from '../packages/domain/configuration.js';
 import {VisualInvestigation} from '../packages/collectors/visual.js';
 const dataDir=settings().dataDir,official=new Database(join(dataDir,'diting.sqlite3'),ROOT),officialConfig=new Configuration(official,dataDir),route=officialConfig.route('media');
-if(!route?.rates)throw Error('Media 路由缺少配置或费率');
+if(!route?.rates)throw Error('DiTing Prism 路由缺少配置或费率');
 mkdirSync(join(dataDir,'qa'),{recursive:true});const dir=mkdtempSync(join(dataDir,'qa','vision-live-')),db=new Database(join(dir,'diting.sqlite3'),ROOT),service=new Service(db),config=new Configuration(db,dir);
 config.putSecret('live-vision-key',officialConfig.secret(route.key_ref)!);const copied={...route,key_ref:'live-vision-key',max_tokens:4096};
 const task=service.createTask('明确的视觉接口验收：生成红色测试图，不是真实舆情资料',null),lease=service.claim('vision-live-check')!,token=lease.lease_owner;db.run('UPDATE tasks SET budget=1 WHERE id=?',task);

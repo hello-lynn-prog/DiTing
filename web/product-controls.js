@@ -5,7 +5,7 @@ liveBanner=function(){const strip=document.querySelector('.v4-status-strip');if(
 const productSession=liveSession;
 liveSession=function(s){const result=productSession(s);result.messages.forEach((m,i)=>{m.refs=s.messages[i].refs||[...new Set(m.text.match(/evidence_[a-f0-9]{32}/g)||[])];});return result;};
 const productTask=liveTask;liveTask=function(t,detail){const result=productTask(t,detail);if(t.status==='waiting_runtime'&&live.capabilities?.reason)result.blockReason=live.capabilities.reason;return result;};
-const productRole={main:'主 Agent',insight:'Insight',media:'Media',query:'Query',forum:'ForumHost',planner:'Planner',verifier:'Verifier',advocate:'Advocate',report:'Report'};
+const productRole={main:'主 Agent',insight:'DiTing Ledger · 档案研析',media:'DiTing Prism · 媒介取证',query:'DiTing Trace · 新闻溯源',forum:'ForumHost',planner:'Planner',verifier:'Verifier',advocate:'Advocate',report:'Report'};
 const productStage=['排队与准备','三引擎取证','反思与补证','Forum 讨论','证据充分性','事实核实','反例质疑','Report 成稿','报告入库'];
 const productState={starting:'启动中',running:'运行中',idle:'本轮已结束',stopped:'已停止',failed:'失败',succeeded:'成功',pending:'待处理',approved:'已批准',rejected:'已拒绝'};
 function productEmpty(text){return `<div class="wf-empty">${liveEsc(text)}</div>`;}

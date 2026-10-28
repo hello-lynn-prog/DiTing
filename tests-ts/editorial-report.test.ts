@@ -17,7 +17,7 @@ test('an uploaded chapter that already includes its Chinese display number is no
  assert.ok(html.includes('<h2>一、报告摘要</h2>'));assert.ok(!html.includes('一、一、报告摘要'));
 });
 
-test('six built-ins read original BettaFish main chapters and subheadings; template contract freezes raw structure',()=>{
+test('six built-ins read their archived main chapters and subheadings; template contract freezes raw structure',()=>{
   assert.equal(templates.length,6);
   for(const t of templates){assert.equal(t.origin,'bettafish_builtin');assert.equal(t.markdown,readFileSync('assets/report-templates/'+t.name+'.md','utf8'));assert.ok(t.main_sections.length>=6);assert.ok(t.sections.length>t.main_sections.length);const contract=templateContract(t);assert.equal(contract.markdown,t.markdown);assert.notEqual(templateContract({...t,markdown:t.markdown+'\n新子节'}).hash,contract.hash);}
   assert.deepEqual(templates[0].main_sections,['报告摘要','事件全景与演变脉络','传播路径与引爆点分析','舆论场多方观点与情绪光谱','深层动因与价值观探讨','关联性评估与行动建议']);

@@ -3,14 +3,14 @@ import { Database, encode, now, uid, type Row } from '../domain/db.js';
 export const investigatorRoles = ['insight', 'media', 'query'] as const;
 export type InvestigatorRole = typeof investigatorRoles[number];
 
-/** New tasks preserve the source engine's initial summary plus fixed reflection loops.
+/** New tasks preserve the initial summary plus fixed reflection loops.
  * Missing policy is an archived legacy contract; upgrades never alter an existing task. */
 export function engineReflectionPolicy(db:Database,taskId:string,role:InvestigatorRole){
  const policy=JSON.parse(db.one('SELECT config_json FROM tasks WHERE id=?',taskId)!.config_json).engine_reflection_policy;
  const sourceRounds={insight:3,media:2,query:2}[role];
  if(!policy)return {mode:'legacy-adaptive',minimum_summaries:1,maximum_summaries:sourceRounds,reflection_rounds:sourceRounds};
- if(policy.version!==1||policy.mode!=='bettafish-fixed'||policy.initial_summaries!==1||policy.reflection_rounds?.[role]!==sourceRounds)throw Error('本任务反思契约损坏，不能默默更改调查轮数');
- return {mode:'bettafish-fixed',minimum_summaries:1+sourceRounds,maximum_summaries:1+sourceRounds,reflection_rounds:sourceRounds};
+ if(policy.version!==1||!['diting-fixed','bettafish-fixed'].includes(policy.mode)||policy.initial_summaries!==1||policy.reflection_rounds?.[role]!==sourceRounds)throw Error('本任务反思契约损坏，不能默默更改调查轮数');
+ return {mode:'diting-fixed',minimum_summaries:1+sourceRounds,maximum_summaries:1+sourceRounds,reflection_rounds:sourceRounds};
 }
 
 function currentRoot(db:Database,taskId:string,childSessionId?:string){
@@ -65,7 +65,7 @@ export function submitReflection(db: Database, taskId: string, role: Investigato
   const round = history.length + 1;
   if(round<policy.minimum_summaries&&input.decision==='stop')throw Error(`不能提前交卷：本次是${role}第${round}/${policy.minimum_summaries}次总结（首轮1次+追加反思${policy.reflection_rounds}次）。本次总结尚未保存。下一步只将本次decision改为search_more、填入具体next_queries并重交同一section_id/assessment/findings，不必先重复检索；保存成功后再执行下一次不同补查。仅第${policy.minimum_summaries}次总结使用stop。`);
   if (round === reflectionLimit[role] && input.decision !== 'stop') throw new Error(`本引擎达到本任务的反思上限（${reflectionLimit[role]}），请记录缺口并停止本轮`);
-  const value = { cycle,section_id:sectionId,round, ...(policy.mode==='bettafish-fixed'?{initial_summary:round===1,reflection_index:round-1,reflection_policy:policy}:{}), assessment: String(input.assessment).trim(), findings: String(input.findings).trim(), decision: input.decision, next_queries: input.next_queries, child_session_id: childSessionId, root_session_id:rootSessionId||null, created_at: now() };
+  const value = { cycle,section_id:sectionId,round, ...(policy.mode==='diting-fixed'?{initial_summary:round===1,reflection_index:round-1,reflection_policy:policy}:{}), assessment: String(input.assessment).trim(), findings: String(input.findings).trim(), decision: input.decision, next_queries: input.next_queries, child_session_id: childSessionId, root_session_id:rootSessionId||null, created_at: now() };
   const id = uid('reflection'); db.run('INSERT INTO artifacts VALUES(?,?,?,?,?,?)', id, taskId, 'investigation_reflection', role, encode(value), now());
   db.event(taskId, 'investigation.reflection', { message: `${role} 完成第 ${cycle+1} 次调查的第 ${sectionId} 段第 ${round} 轮证据反思`, role,cycle,section_id:sectionId,round, decision: value.decision, artifact_id: id, child_session_id: childSessionId });
   const forum = latestForumMessages(db, taskId, 3,rootSessionId);

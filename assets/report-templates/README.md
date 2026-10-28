@@ -1,4 +1,4 @@
-# BettaFish 报告模板（本地运行时）
+# 第三方报告模板（本地运行时）
 
 六份 Markdown 来自用户提供的本地 BettaFish 快照，保持原文件内容；来源清单为 `docs/source-inventory-2026-10-18.json`，随附完整许可材料为 `LICENSE.BettaFish`。
 

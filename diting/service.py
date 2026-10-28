@@ -55,7 +55,7 @@ class Service:
 
     def _create_task(self, conn, title, session_id, parent_id=None, source="chat"):
         config = scope(title, self.settings.default_budget)
-        config.update({"executor": "dsh", "pipeline": "bettafish-full-v1",
+        config.update({"executor": "dsh", "pipeline": "diting-full-v1",
                        "config_version": 1, "max_supplement_rounds": 3,
                        "delivery": ["html", "markdown", "pdf"],
                        "gates": ["sufficiency", "verifier", "advocate"]})

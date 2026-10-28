@@ -6,13 +6,26 @@ import { join } from 'node:path';
 import { ROOT } from '../apps/server/settings.js';
 import { Database,encode,uid,now } from '../packages/domain/db.js';
 import { Service as CurrentService } from '../packages/domain/service.js';
-import { assertReflectionGate, forumCycleState, latestForumMessages, postForumMessage, submitReflection } from '../packages/dsh-diting/investigation-reflection.js';
+import { assertReflectionGate, engineReflectionPolicy, forumCycleState, latestForumMessages, postForumMessage, submitReflection } from '../packages/dsh-diting/investigation-reflection.js';
+import {roles} from '../packages/dsh-diting/roles.js';
 
 // Existing cases describe the archived adaptive wire contract. Keep explicit
 // compatibility coverage rather than rewriting old persisted tasks on upgrade.
 class Service extends CurrentService {
  override createTask(...args:Parameters<CurrentService['createTask']>){const id=super.createTask(...args),policy=JSON.parse(this.rawTask(id).config_json);delete policy.engine_reflection_policy;this.db.run('UPDATE tasks SET config_json=? WHERE id=?',encode(policy),id);return id;}
 }
+
+test('new investigator names are original and archived fixed contracts remain resumable',()=>{
+ const db=new Database(join(mkdtempSync(join(tmpdir(),'diting-role-names-')),'db.sqlite3'),ROOT),service=new CurrentService(db),task=service.createTask('角色命名兼容测试',null);
+ try{
+  assert.deepEqual([roles.insight.name,roles.media.name,roles.query.name],['DiTing Ledger · 档案研析','DiTing Prism · 媒介取证','DiTing Trace · 新闻溯源']);
+  assert.equal(engineReflectionPolicy(db,task,'insight').mode,'diting-fixed');
+  const saved=JSON.parse(service.rawTask(task).config_json);saved.engine_reflection_policy.mode='bettafish-fixed';
+  db.run('UPDATE tasks SET config_json=? WHERE id=?',encode(saved),task);
+  assert.equal(engineReflectionPolicy(db,task,'insight').mode,'diting-fixed');
+  assert.equal(engineReflectionPolicy(db,task,'media').minimum_summaries,3);
+ }finally{db.close();}
+});
 
 test('new native contracts require an initial summary and every source reflection round, independently per section and role',()=>{
  const db=new Database(join(mkdtempSync(join(tmpdir(),'diting-fixed-reflection-')),'db.sqlite3'),ROOT),task=new CurrentService(db).createTask('固定轮次全链路',null);

@@ -9,7 +9,7 @@ export class LocalSentiment {
   private engine?:SentimentEngine;
   private inflight=new Map<string,Promise<Row>>();
   readonly directory:string;
-  constructor(readonly service:Service,readonly config:Configuration,engine?:SentimentEngine){this.engine=engine;this.directory=join(dirname(service.db.path),'models','bettafish-multilingual-sentiment');}
+  constructor(readonly service:Service,readonly config:Configuration,engine?:SentimentEngine){this.engine=engine;this.directory=join(dirname(service.db.path),'models','multilingual-sentiment-v1');}
   settings(taskId?:string):Row {const frozen=taskId?JSON.parse(this.service.rawTask(taskId).config_json).sentiment:null;return frozen||this.config.get('sentiment.local',{enabled:false,min_confidence:0.5});}
   freeze(){const value=this.settings(),path=join(this.directory,'manifest.json');return {...value,model_version:existsSync(path)?hash(encode(JSON.parse(readFileSync(path,'utf8')))):null};}
   status(){const path=join(this.directory,'manifest.json'),installed=existsSync(path),manifest=installed?JSON.parse(readFileSync(path,'utf8')):null;return {...this.settings(),installed,model_id:'tabularisai/multilingual-sentiment-analysis',runtime:'typescript-onnx-cpu',labels:['非常负面','负面','中性','正面','非常正面'],revision:manifest?.revision||null,cloud_token_cost:0,input_scope:'每条前512个分词token，超过截断；置信度是模型输出，不是正确率',completed:Number(this.service.db.one('SELECT COUNT(*) n FROM sentiment_inferences')?.n||0)};}
